@@ -7,13 +7,15 @@ Injects `memory-bank/`, `.clinerules/`, and `.clineignore` into any project — 
 ## Install & Use
 
 ```bash
-# Run directly (no install needed)
+# Recommended quick start (no install needed)
 npx ai-agent-bootstrap init
 
-# Or install globally
+# For repeated use, install globally
 npm install -g ai-agent-bootstrap
 ai-bootstrap init
 ```
+
+> **Note for npm users:** the npm package page may show a generic `npm i ai-agent-bootstrap` install snippet. This package is a CLI tool, so the intended usage is `npx ai-agent-bootstrap init` (quick start) or global install + `ai-bootstrap init`.
 
 ## What It Does
 
@@ -61,6 +63,7 @@ ai-bootstrap status
 AI coding agents work best when they have context. Without it, they guess — wrong file structure, wrong patterns, wrong decisions.
 
 This tool gives your agent:
+
 - **Memory** — persistent context across sessions via memory-bank
 - **Standards** — coding conventions it must follow
 - **Workflow** — a plan-first approach to every task
