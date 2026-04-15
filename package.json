@@ -1,7 +1,7 @@
 {
   "name": "ai-agent-bootstrap",
-  "version": "1.1.1",
-  "description": "Bootstrap AI-agent-ready development environments with provider-specific templates (cline, cursor, openclaw, windsurf, claude-code).",
+  "version": "1.1.2",
+  "description": "CLI to scaffold AI-agent context, rules, and memory files for Cline, Cursor, OpenClaw, Windsurf, and Claude Code.",
   "main": "src/index.js",
   "bin": {
     "ai-bootstrap": "./bin/cli.js"
@@ -23,20 +23,20 @@
     "prepublishOnly": "npm run publish:check"
   },
   "keywords": [
-    "ai",
-    "agent",
+    "ai-agent",
+    "ai-cli",
     "bootstrap",
+    "project-scaffolding",
+    "context-engineering",
+    "memory-bank",
+    "developer-tooling",
     "cline",
     "cursor",
     "openclaw",
     "windsurf",
     "claude-code",
-    "memory-bank",
-    "dev-tools",
-    "cli",
-    "scaffold",
-    "ai-coding",
-    "workflow"
+    "workflow",
+    "cli"
   ],
   "author": "mfarsx",
   "license": "MIT",
@@ -44,6 +44,7 @@
     "type": "git",
     "url": "https://github.com/mfarsx/ai-agent-bootstrap"
   },
+  "homepage": "https://github.com/mfarsx/ai-agent-bootstrap#readme",
   "engines": {
     "node": ">=16.0.0"
   },
