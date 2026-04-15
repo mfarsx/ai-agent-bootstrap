@@ -14,7 +14,29 @@ const EXPECTED_FILES = [
   ".clinerules/01-coding-standards.md",
   ".clinerules/02-workflow.md",
   ".clinerules/03-boundaries.md",
+  ".clinerules/workflows/checkpoint.md",
+  ".clinerules/workflows/cleanup.md",
+  ".clinerules/workflows/commit.md",
+  ".clinerules/workflows/plan.md",
+  ".clinerules/workflows/review.md",
+  ".clinerules/workflows/status.md",
+  ".clinerules/workflows/stuck.md",
   ".clineignore",
+];
+
+const CURSOR_EXPECTED_FILES = [
+  "memory-bank/projectbrief.md",
+  "memory-bank/productContext.md",
+  "memory-bank/activeContext.md",
+  "memory-bank/systemPatterns.md",
+  "memory-bank/techContext.md",
+  "memory-bank/progress.md",
+  "AGENTS.md",
+  ".cursor/index.mdc",
+  ".cursor/rules/00-memory-bank.mdc",
+  ".cursor/rules/01-coding-standards.mdc",
+  ".cursor/rules/02-workflow.mdc",
+  ".cursor/rules/03-boundaries.mdc",
 ];
 
 module.exports = async function registerInitTests({ test, assert }) {
@@ -63,6 +85,52 @@ module.exports = async function registerInitTests({ test, assert }) {
     });
   });
 
+  test("initProject creates cursor provider files", async () => {
+    await withTempDir("ai-bootstrap-cursor-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "cursor" }),
+      );
+
+      for (const relativeFile of CURSOR_EXPECTED_FILES) {
+        const exists = await fs.pathExists(path.join(targetDir, relativeFile));
+        assert.strictEqual(
+          exists,
+          true,
+          `Expected cursor file missing: ${relativeFile}`,
+        );
+      }
+    });
+  });
+
+  test("initProject creates claude-code provider files", async () => {
+    await withTempDir("ai-bootstrap-claude-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "claude-code" }),
+      );
+
+      const expectedFiles = [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".claude/commands/update-memory.md",
+        "docs/context/projectbrief.md",
+        "docs/context/productContext.md",
+        "docs/context/activeContext.md",
+        "docs/context/systemPatterns.md",
+        "docs/context/techContext.md",
+        "docs/context/progress.md",
+      ];
+
+      for (const relativeFile of expectedFiles) {
+        const exists = await fs.pathExists(path.join(targetDir, relativeFile));
+        assert.strictEqual(
+          exists,
+          true,
+          `Expected claude-code file missing: ${relativeFile}`,
+        );
+      }
+    });
+  });
+
   test("initProject propagates permissions-related filesystem errors", async () => {
     const originalEnsureDir = fs.ensureDir;
     fs.ensureDir = async () => {
@@ -79,5 +147,21 @@ module.exports = async function registerInitTests({ test, assert }) {
     } finally {
       fs.ensureDir = originalEnsureDir;
     }
+  });
+
+  test("initProject replaces command placeholders for providers with AGENTS.md", async () => {
+    await withTempDir("ai-bootstrap-placeholder-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "cursor" }),
+      );
+
+      const agentsPath = path.join(targetDir, "AGENTS.md");
+      const content = await fs.readFile(agentsPath, "utf-8");
+
+      assert.strictEqual(/\{\{[A-Z_]+\}\}/.test(content), false);
+      assert.ok(content.includes("npm install"));
+      assert.ok(content.includes("npm run dev"));
+      assert.ok(content.includes("npm test"));
+    });
   });
 };

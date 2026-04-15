@@ -2,7 +2,7 @@
 
 Bootstrap AI-agent-ready development environments with a single command.
 
-Injects `memory-bank/`, `.clinerules/`, and `.clineignore` into any project — giving your AI coding agent (Cline, etc.) the context it needs from day one.
+Injects agent-specific context files into any project for Cline, Cursor, OpenClaw, Windsurf, and Claude Code.
 
 ## Install & Use
 
@@ -19,7 +19,9 @@ ai-bootstrap init
 
 ## What It Does
 
-Running `ai-bootstrap init` creates:
+Running `ai-bootstrap init` (default `--provider cline`) creates provider-specific files.
+
+For `--provider cline`:
 
 ```
 your-project/
@@ -34,7 +36,11 @@ your-project/
 │   ├── 00-memory-bank.md     # Memory bank rules
 │   ├── 01-coding-standards.md # Code style and conventions
 │   ├── 02-workflow.md        # Plan-first development workflow
-│   └── 03-boundaries.md     # Hard limits for the AI agent
+│   ├── 03-boundaries.md     # Hard limits for the AI agent
+│   └── workflows/
+│      ├── plan.md
+│      ├── review.md
+│      └── ...
 └── .clineignore              # Files the agent should ignore
 ```
 
@@ -48,6 +54,11 @@ Interactive setup — asks about your project and pre-fills templates.
 ai-bootstrap init              # Interactive mode
 ai-bootstrap init -y           # Skip prompts, use defaults
 ai-bootstrap init -d ./myapp   # Target a specific directory
+ai-bootstrap init -p cline       # Cline templates
+ai-bootstrap init -p cursor      # Cursor templates
+ai-bootstrap init -p openclaw    # OpenClaw templates
+ai-bootstrap init -p windsurf    # Windsurf templates
+ai-bootstrap init -p claude-code # Claude Code templates
 ```
 
 ### `ai-bootstrap status`
@@ -56,7 +67,32 @@ Check which AI agent files exist in your project.
 
 ```bash
 ai-bootstrap status
+ai-bootstrap status -p cline
+ai-bootstrap status -p cursor
+ai-bootstrap status -p claude-code
 ```
+
+## Template Structure (Provider-Based)
+
+The internal template source tree is organized by provider:
+
+```
+templates/
+├── claude-code/
+├── cline/
+│   ├── .clinerules/
+│   ├── memory-bank/
+│   └── .clineignore
+├── cursor/
+│   └── .cursor/rules/*.mdc
+├── openclaw/
+└── windsurf/
+```
+
+Memory context is generated under:
+
+- `memory-bank/` for `cline`, `cursor`, `openclaw`, and `windsurf`
+- `docs/context/` for `claude-code`
 
 ## Why?
 

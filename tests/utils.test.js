@@ -10,6 +10,11 @@ module.exports = async function registerUtilsTests({ test, assert }) {
       "{{TECH_STACK}}",
       "{{EXTRAS}}",
       "{{TARGET_AUDIENCE}}",
+      "{{INSTALL_COMMAND}}",
+      "{{DEV_COMMAND}}",
+      "{{TEST_COMMAND}}",
+      "{{LINT_COMMAND}}",
+      "{{PROJECT_STRUCTURE}}",
     ].join("\n");
 
     const output = fillTemplate(template, {
@@ -18,6 +23,11 @@ module.exports = async function registerUtilsTests({ test, assert }) {
       stack: "Node.js",
       extras: ["Docker", "PostgreSQL"],
       targetAudience: "Developers",
+      installCommand: "npm install",
+      devCommand: "npm run dev",
+      testCommand: "npm test",
+      lintCommand: "npm run lint",
+      projectStructure: "src/\n  └── index.js",
     });
 
     assert.ok(output.includes("demo-app"));
@@ -25,6 +35,11 @@ module.exports = async function registerUtilsTests({ test, assert }) {
     assert.ok(output.includes("Node.js"));
     assert.ok(output.includes("- Docker\n- PostgreSQL"));
     assert.ok(output.includes("Developers"));
+    assert.ok(output.includes("npm install"));
+    assert.ok(output.includes("npm run dev"));
+    assert.ok(output.includes("npm test"));
+    assert.ok(output.includes("npm run lint"));
+    assert.ok(output.includes("src/\n  └── index.js"));
   });
 
   test("fillTemplate uses fallback text for empty extras", () => {
@@ -45,8 +60,11 @@ module.exports = async function registerUtilsTests({ test, assert }) {
   test("fillTemplate resolves placeholders in shipped templates", async () => {
     const templatesRoot = path.join(__dirname, "..", "templates");
     const filePaths = [
-      path.join(templatesRoot, "memory-bank", "projectbrief.md"),
-      path.join(templatesRoot, "memory-bank", "techContext.md"),
+      path.join(templatesRoot, "cline", "memory-bank", "projectbrief.md"),
+      path.join(templatesRoot, "cline", "memory-bank", "techContext.md"),
+      path.join(templatesRoot, "cursor", "AGENTS.md"),
+      path.join(templatesRoot, "windsurf", "AGENTS.md"),
+      path.join(templatesRoot, "claude-code", "AGENTS.md"),
     ];
 
     for (const filePath of filePaths) {
@@ -57,6 +75,11 @@ module.exports = async function registerUtilsTests({ test, assert }) {
         stack: "Node.js",
         extras: ["Docker"],
         targetAudience: "Engineers",
+        installCommand: "npm install",
+        devCommand: "npm run dev",
+        testCommand: "npm test",
+        lintCommand: "npm run lint",
+        projectStructure: "src/\n  └── index.js",
       });
 
       assert.strictEqual(

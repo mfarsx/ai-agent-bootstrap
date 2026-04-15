@@ -9,6 +9,11 @@ function fillTemplate(content, data) {
     TECH_STACK: data.stack || "",
     EXTRAS: formatExtras(data.extras),
     TARGET_AUDIENCE: data.targetAudience || "",
+    INSTALL_COMMAND: data.installCommand || "",
+    DEV_COMMAND: data.devCommand || "",
+    TEST_COMMAND: data.testCommand || "",
+    LINT_COMMAND: data.lintCommand || "",
+    PROJECT_STRUCTURE: data.projectStructure || "",
   };
 
   let output = replaceTokens(content, builtInValues);

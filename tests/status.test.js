@@ -11,7 +11,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 0/11 files found."));
+      assert.ok(text.includes("📊 0/18 files found."));
       assert.ok(text.includes("Run"));
       assert.ok(text.includes("ai-bootstrap init"));
       assert.ok(text.includes("create missing files"));
@@ -33,7 +33,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 2/11 files found."));
+      assert.ok(text.includes("📊 2/18 files found."));
       assert.ok(text.includes("memory-bank/projectbrief.md"));
       assert.ok(text.includes(".clineignore"));
     });
@@ -52,6 +52,13 @@ module.exports = async function registerStatusTests({ test, assert }) {
         ".clinerules/01-coding-standards.md",
         ".clinerules/02-workflow.md",
         ".clinerules/03-boundaries.md",
+        ".clinerules/workflows/checkpoint.md",
+        ".clinerules/workflows/cleanup.md",
+        ".clinerules/workflows/commit.md",
+        ".clinerules/workflows/plan.md",
+        ".clinerules/workflows/review.md",
+        ".clinerules/workflows/status.md",
+        ".clinerules/workflows/stuck.md",
         ".clineignore",
       ];
 
@@ -66,8 +73,54 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 11/11 files found."));
+      assert.ok(text.includes("📊 18/18 files found."));
       assert.ok(text.includes("All files in place!"));
+    });
+  });
+
+  test("checkStatus reports cursor provider file totals", async () => {
+    await withTempDir("ai-bootstrap-status-cursor-", async (targetDir) => {
+      await fs.ensureDir(path.join(targetDir, "memory-bank"));
+      await fs.writeFile(
+        path.join(targetDir, "memory-bank", "projectbrief.md"),
+        "ok",
+        "utf-8",
+      );
+      await fs.ensureDir(path.join(targetDir, ".cursor"));
+      await fs.writeFile(
+        path.join(targetDir, ".cursor", "index.mdc"),
+        "ok",
+        "utf-8",
+      );
+
+      const output = await captureConsole(() =>
+        checkStatus({ dir: targetDir, provider: "cursor" }),
+      );
+      const text = output.logs.join("\n");
+
+      assert.ok(text.includes("Provider: Cursor"));
+      assert.ok(text.includes("📊 2/12 files found."));
+      assert.ok(text.includes(".cursor/rules/00-memory-bank.mdc"));
+    });
+  });
+
+  test("checkStatus reports claude-code provider file totals", async () => {
+    await withTempDir("ai-bootstrap-status-claude-", async (targetDir) => {
+      await fs.ensureDir(path.join(targetDir, "docs", "context"));
+      await fs.writeFile(
+        path.join(targetDir, "docs", "context", "projectbrief.md"),
+        "ok",
+        "utf-8",
+      );
+
+      const output = await captureConsole(() =>
+        checkStatus({ dir: targetDir, provider: "claude-code" }),
+      );
+      const text = output.logs.join("\n");
+
+      assert.ok(text.includes("Provider: Claude Code"));
+      assert.ok(text.includes("📊 1/9 files found."));
+      assert.ok(text.includes(".claude/commands/update-memory.md"));
     });
   });
 };
