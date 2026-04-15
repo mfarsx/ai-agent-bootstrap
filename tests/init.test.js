@@ -1,6 +1,8 @@
 const path = require("path");
+const nodeFs = require("fs");
 const fs = require("fs-extra");
 const { initProject } = require("../src/init");
+const { collectInitData } = require("../src/commands/init");
 const { withTempDir, captureConsole } = require("./helpers");
 
 const EXPECTED_FILES = [
@@ -38,6 +40,23 @@ const CURSOR_EXPECTED_FILES = [
   ".cursor/rules/01-coding-standards.mdc",
   ".cursor/rules/02-workflow.mdc",
   ".cursor/rules/03-boundaries.mdc",
+  ".gitignore",
+];
+
+const OPENCLAW_SENTINEL_FILES = [
+  "memory-bank/projectbrief.md",
+  "AGENTS.md",
+  "IDENTITY.md",
+  "SOUL.md",
+  "USER.md",
+  ".gitignore",
+];
+
+const WINDSURF_SENTINEL_FILES = [
+  "memory-bank/projectbrief.md",
+  "AGENTS.md",
+  ".windsurf/rules/00-memory-bank.md",
+  ".windsurf/rules/03-boundaries.md",
   ".gitignore",
 ];
 
@@ -185,6 +204,40 @@ module.exports = async function registerInitTests({ test, assert }) {
     });
   });
 
+  test("initProject creates openclaw provider files", async () => {
+    await withTempDir("ai-bootstrap-openclaw-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "openclaw" }),
+      );
+
+      for (const relativeFile of OPENCLAW_SENTINEL_FILES) {
+        const exists = await fs.pathExists(path.join(targetDir, relativeFile));
+        assert.strictEqual(
+          exists,
+          true,
+          `Expected openclaw file missing: ${relativeFile}`,
+        );
+      }
+    });
+  });
+
+  test("initProject creates windsurf provider files", async () => {
+    await withTempDir("ai-bootstrap-windsurf-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
+      );
+
+      for (const relativeFile of WINDSURF_SENTINEL_FILES) {
+        const exists = await fs.pathExists(path.join(targetDir, relativeFile));
+        assert.strictEqual(
+          exists,
+          true,
+          `Expected windsurf file missing: ${relativeFile}`,
+        );
+      }
+    });
+  });
+
   test("initProject propagates permissions-related filesystem errors", async () => {
     const originalEnsureDir = fs.ensureDir;
     fs.ensureDir = async () => {
@@ -203,6 +256,44 @@ module.exports = async function registerInitTests({ test, assert }) {
     }
   });
 
+  test("initProject fails fast when ready provider template sources are invalid", async () => {
+    await withTempDir("ai-bootstrap-invalid-template-", async (targetDir) => {
+      const originalExistsSync = nodeFs.existsSync;
+      const originalWriteFile = fs.writeFile;
+      let writeCalled = false;
+
+      nodeFs.existsSync = (filePath) => {
+        if (
+          String(filePath).includes(
+            path.join("templates", "cline", "memory-bank", "projectbrief.md"),
+          )
+        ) {
+          return false;
+        }
+        return originalExistsSync(filePath);
+      };
+
+      fs.writeFile = async (...args) => {
+        writeCalled = true;
+        return originalWriteFile(...args);
+      };
+
+      try {
+        await assert.rejects(
+          () =>
+            captureConsole(() =>
+              initProject({ dir: targetDir, yes: true, provider: "cline" }),
+            ),
+          /Manifest validation failed[\s\S]*missing template source/,
+        );
+        assert.strictEqual(writeCalled, false);
+      } finally {
+        nodeFs.existsSync = originalExistsSync;
+        fs.writeFile = originalWriteFile;
+      }
+    });
+  });
+
   test("initProject replaces command placeholders for providers with AGENTS.md", async () => {
     await withTempDir("ai-bootstrap-placeholder-", async (targetDir) => {
       await captureConsole(() =>
@@ -216,6 +307,108 @@ module.exports = async function registerInitTests({ test, assert }) {
       assert.ok(content.includes("npm install"));
       assert.ok(content.includes("npm run dev"));
       assert.ok(content.includes("npm test"));
+    });
+  });
+
+  test("collectInitData applies context/template variable precedence seams", async () => {
+    await withTempDir("ai-bootstrap-context-seam-", async (targetDir) => {
+      const { provider, answers } = await collectInitData(targetDir, {
+        yes: true,
+        provider: "cline",
+        configContext: { stack: "TypeScript" },
+        contextOverrides: { provider: "cursor" },
+        configVariables: { owner_name: "config-team" },
+        templateVariables: { OWNER_NAME: "cli-team" },
+      });
+
+      assert.strictEqual(provider.name, "cursor");
+      assert.strictEqual(answers.stack, "TypeScript");
+      assert.deepStrictEqual(answers.templateVariables, {
+        OWNER_NAME: "cli-team",
+      });
+    });
+  });
+
+  test("collectInitData accepts KEY=VALUE template variables array", async () => {
+    await withTempDir("ai-bootstrap-context-array-", async (targetDir) => {
+      const { answers } = await collectInitData(targetDir, {
+        yes: true,
+        provider: "cline",
+        templateVariables: ["owner_name=cli-team", "build_command=npm run build"],
+      });
+
+      assert.deepStrictEqual(answers.templateVariables, {
+        OWNER_NAME: "cli-team",
+        BUILD_COMMAND: "npm run build",
+      });
+    });
+  });
+
+  test("collectInitData ignores invalid KEY=VALUE template variable forms", async () => {
+    await withTempDir("ai-bootstrap-context-invalid-vars-", async (targetDir) => {
+      const { answers } = await collectInitData(targetDir, {
+        yes: true,
+        provider: "cline",
+        templateVariables: ["NO_SEPARATOR", "=empty", "valid_key=value"],
+      });
+
+      assert.deepStrictEqual(answers.templateVariables, {
+        VALID_KEY: "value",
+      });
+    });
+  });
+
+  test("collectInitData uses last-write-wins for duplicate template variable keys", async () => {
+    await withTempDir("ai-bootstrap-context-duplicate-vars-", async (targetDir) => {
+      const { answers } = await collectInitData(targetDir, {
+        yes: true,
+        provider: "cline",
+        templateVariables: [
+          "owner_name=first",
+          "OWNER_NAME=second",
+          "owner name=third",
+        ],
+      });
+
+      assert.deepStrictEqual(answers.templateVariables, {
+        OWNER_NAME: "third",
+      });
+    });
+  });
+
+  test("collectInitData loads config context and variables with --var precedence", async () => {
+    await withTempDir("ai-bootstrap-context-config-", async (targetDir) => {
+      const configPath = path.join(targetDir, "bootstrap.config.json");
+      await fs.writeFile(
+        configPath,
+        JSON.stringify(
+          {
+            context: {
+              provider: "windsurf",
+              stack: "TypeScript",
+            },
+            templateVariables: {
+              OWNER_NAME: "config-team",
+            },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+
+      const { provider, answers } = await collectInitData(targetDir, {
+        yes: true,
+        provider: "cline",
+        config: configPath,
+        templateVariables: ["owner_name=cli-team"],
+      });
+
+      assert.strictEqual(provider.name, "windsurf");
+      assert.strictEqual(answers.stack, "TypeScript");
+      assert.deepStrictEqual(answers.templateVariables, {
+        OWNER_NAME: "cli-team",
+      });
     });
   });
 };

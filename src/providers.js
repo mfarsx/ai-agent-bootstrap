@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+
 const MEMORY_BANK_FILES = [
   "projectbrief.md",
   "productContext.md",
@@ -149,6 +152,128 @@ const PROVIDERS = {
   },
 };
 
+const TEMPLATE_ROOT = path.join(__dirname, "..", "templates");
+
+function resolveTemplatePath(provider, file) {
+  const sourceProvider = file.sourceProvider || provider.templateDir;
+  return path.join(TEMPLATE_ROOT, sourceProvider, file.source);
+}
+
+function validateProviderDefinition(
+  providerName,
+  provider,
+  providers = PROVIDERS,
+  options = {},
+) {
+  const checkTemplateSources = Boolean(options.checkTemplateSources);
+  const errors = [];
+
+  if (!provider || typeof provider !== "object") {
+    return [`Provider "${providerName}" is not defined.`];
+  }
+
+  if (typeof provider.ready !== "boolean") {
+    errors.push(`Provider "${providerName}" must define a boolean "ready" flag.`);
+  }
+
+  if (!provider.templateDir || typeof provider.templateDir !== "string") {
+    errors.push(`Provider "${providerName}" must define a valid "templateDir".`);
+  }
+
+  if (!Array.isArray(provider.files) || provider.files.length === 0) {
+    errors.push(`Provider "${providerName}" must define at least one file mapping.`);
+    return errors;
+  }
+
+  const targets = new Set();
+
+  for (const [index, file] of provider.files.entries()) {
+    if (!file || typeof file !== "object") {
+      errors.push(
+        `Provider "${providerName}" has invalid file mapping at index ${index}.`,
+      );
+      continue;
+    }
+
+    if (!file.source || typeof file.source !== "string") {
+      errors.push(
+        `Provider "${providerName}" file[${index}] is missing a valid "source".`,
+      );
+      continue;
+    }
+
+    if (!file.target || typeof file.target !== "string") {
+      errors.push(
+        `Provider "${providerName}" file[${index}] is missing a valid "target".`,
+      );
+      continue;
+    }
+
+    if (targets.has(file.target)) {
+      errors.push(
+        `Provider "${providerName}" has duplicate target path "${file.target}".`,
+      );
+    } else {
+      targets.add(file.target);
+    }
+
+    const sourceProviderName = file.sourceProvider || provider.templateDir;
+    if (!providers[sourceProviderName]) {
+      errors.push(
+        `Provider "${providerName}" file "${file.target}" references unknown sourceProvider "${sourceProviderName}".`,
+      );
+      continue;
+    }
+
+    if (checkTemplateSources && provider.ready) {
+      const templatePath = resolveTemplatePath(provider, file);
+      if (!fs.existsSync(templatePath)) {
+        errors.push(
+          `Provider "${providerName}" is missing template source "${sourceProviderName}/${file.source}".`,
+        );
+      }
+    }
+  }
+
+  return errors;
+}
+
+function validateProviderManifest(providerName, options = {}) {
+  const provider = getProvider(providerName);
+  const errors = validateProviderDefinition(
+    provider.name,
+    provider,
+    PROVIDERS,
+    options,
+  );
+  return {
+    providerName: provider.name,
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+function validateReadyProviderManifests(options = {}) {
+  const errors = [];
+
+  for (const providerName of getReadyProviderNames()) {
+    const result = validateProviderManifest(providerName, options);
+    for (const error of result.errors) {
+      errors.push(error);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+function formatManifestValidationError(validation) {
+  const detail = validation.errors.map((error) => `- ${error}`).join("\n");
+  return `Manifest validation failed:\n${detail}`;
+}
+
 function getProvider(name) {
   const providerName = String(name || "cline").toLowerCase();
   const provider = PROVIDERS[providerName];
@@ -191,7 +316,7 @@ function getExpectedFiles(providerName) {
   return [...provider.files.map((file) => file.target), ".gitignore"];
 }
 
-function assertProviderReady(providerName) {
+function assertProviderReady(providerName, options = {}) {
   const provider = getProvider(providerName);
 
   if (!provider.ready) {
@@ -200,6 +325,15 @@ function assertProviderReady(providerName) {
         ", ",
       )}`,
     );
+  }
+
+  if (options.validateManifest || options.checkTemplateSources) {
+    const validation = validateProviderManifest(provider.name, {
+      checkTemplateSources: options.checkTemplateSources,
+    });
+    if (!validation.valid) {
+      throw new Error(formatManifestValidationError(validation));
+    }
   }
 
   return provider;
@@ -212,4 +346,8 @@ module.exports = {
   getProviderPromptChoices,
   getReadyProviderNames,
   getExpectedFiles,
+  resolveTemplatePath,
+  validateProviderDefinition,
+  validateProviderManifest,
+  validateReadyProviderManifests,
 };

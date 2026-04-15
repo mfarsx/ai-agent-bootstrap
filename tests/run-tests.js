@@ -1,6 +1,8 @@
 const assert = require("assert");
 
 const suites = [
+  require("./providers.test"),
+  require("./template-context.test"),
   require("./utils.test"),
   require("./init.test"),
   require("./status.test"),
