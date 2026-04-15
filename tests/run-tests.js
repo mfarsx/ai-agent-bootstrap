@@ -4,6 +4,7 @@ const suites = [
   require("./utils.test"),
   require("./init.test"),
   require("./status.test"),
+  require("./cli.test"),
 ];
 
 const tests = [];

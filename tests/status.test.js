@@ -11,7 +11,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 0/18 files found."));
+      assert.ok(text.includes("📊 0/19 files found."));
       assert.ok(text.includes("Run"));
       assert.ok(text.includes("ai-bootstrap init"));
       assert.ok(text.includes("create missing files"));
@@ -33,7 +33,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 2/18 files found."));
+      assert.ok(text.includes("📊 2/19 files found."));
       assert.ok(text.includes("memory-bank/projectbrief.md"));
       assert.ok(text.includes(".clineignore"));
     });
@@ -60,6 +60,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
         ".clinerules/workflows/status.md",
         ".clinerules/workflows/stuck.md",
         ".clineignore",
+        ".gitignore",
       ];
 
       for (const relativeFile of files) {
@@ -73,7 +74,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 18/18 files found."));
+      assert.ok(text.includes("📊 19/19 files found."));
       assert.ok(text.includes("All files in place!"));
     });
   });
@@ -99,7 +100,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       const text = output.logs.join("\n");
 
       assert.ok(text.includes("Provider: Cursor"));
-      assert.ok(text.includes("📊 2/12 files found."));
+      assert.ok(text.includes("📊 2/13 files found."));
       assert.ok(text.includes(".cursor/rules/00-memory-bank.mdc"));
     });
   });
@@ -119,7 +120,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       const text = output.logs.join("\n");
 
       assert.ok(text.includes("Provider: Claude Code"));
-      assert.ok(text.includes("📊 1/9 files found."));
+      assert.ok(text.includes("📊 1/10 files found."));
       assert.ok(text.includes(".claude/commands/update-memory.md"));
     });
   });

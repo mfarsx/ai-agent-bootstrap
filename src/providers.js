@@ -46,6 +46,63 @@ function createMemoryBankFiles() {
   }));
 }
 
+function createGitignoreEntries(files) {
+  return files.map((file) => file.target);
+}
+
+const CLINE_FILES = [
+  ...createMemoryBankFiles(),
+  ...CLINE_RULE_FILES.map((file) => ({
+    source: `.clinerules/${file}`,
+    target: `.clinerules/${file}`,
+  })),
+  ...CLINE_WORKFLOW_FILES.map((file) => ({
+    source: `.clinerules/workflows/${file}`,
+    target: `.clinerules/workflows/${file}`,
+  })),
+  { source: ".clineignore", target: ".clineignore" },
+];
+
+const CURSOR_FILES = [
+  ...createMemoryBankFiles(),
+  { source: "AGENTS.md", target: "AGENTS.md" },
+  { source: ".cursor/index.mdc", target: ".cursor/index.mdc" },
+  ...CURSOR_RULE_FILES.map((file) => ({
+    source: `.cursor/rules/${file}`,
+    target: `.cursor/rules/${file}`,
+  })),
+];
+
+const OPENCLAW_FILES = [
+  ...createMemoryBankFiles(),
+  { source: "AGENTS.md", target: "AGENTS.md" },
+  { source: "IDENTITY.md", target: "IDENTITY.md" },
+  { source: "SOUL.md", target: "SOUL.md" },
+  { source: "USER.md", target: "USER.md" },
+];
+
+const WINDSURF_FILES = [
+  ...createMemoryBankFiles(),
+  { source: "AGENTS.md", target: "AGENTS.md" },
+  ...WINDSURF_RULE_FILES.map((file) => ({
+    source: `.windsurf/rules/${file}`,
+    target: `.windsurf/rules/${file}`,
+  })),
+];
+
+const CLAUDE_CODE_FILES = [
+  { source: "AGENTS.md", target: "AGENTS.md" },
+  { source: "CLAUDE.md", target: "CLAUDE.md" },
+  {
+    source: ".claude/commands/update-memory.md",
+    target: ".claude/commands/update-memory.md",
+  },
+  ...MEMORY_BANK_FILES.map((file) => ({
+    source: `docs/context/${file}`,
+    target: `docs/context/${file}`,
+  })),
+];
+
 const PROVIDERS = {
   cline: {
     label: "Cline",
@@ -53,18 +110,8 @@ const PROVIDERS = {
     templateDir: "cline",
     contextPath: "memory-bank",
     rulesPath: ".clinerules",
-    files: [
-      ...createMemoryBankFiles(),
-      ...CLINE_RULE_FILES.map((file) => ({
-        source: `.clinerules/${file}`,
-        target: `.clinerules/${file}`,
-      })),
-      ...CLINE_WORKFLOW_FILES.map((file) => ({
-        source: `.clinerules/workflows/${file}`,
-        target: `.clinerules/workflows/${file}`,
-      })),
-      { source: ".clineignore", target: ".clineignore" },
-    ],
+    files: CLINE_FILES,
+    gitignoreEntries: createGitignoreEntries(CLINE_FILES),
   },
   cursor: {
     label: "Cursor",
@@ -72,28 +119,16 @@ const PROVIDERS = {
     templateDir: "cursor",
     contextPath: "memory-bank",
     rulesPath: ".cursor/rules",
-    files: [
-      ...createMemoryBankFiles(),
-      { source: "AGENTS.md", target: "AGENTS.md" },
-      { source: ".cursor/index.mdc", target: ".cursor/index.mdc" },
-      ...CURSOR_RULE_FILES.map((file) => ({
-        source: `.cursor/rules/${file}`,
-        target: `.cursor/rules/${file}`,
-      })),
-    ],
+    files: CURSOR_FILES,
+    gitignoreEntries: createGitignoreEntries(CURSOR_FILES),
   },
   openclaw: {
     label: "OpenClaw",
     ready: true,
     templateDir: "openclaw",
     contextPath: "memory-bank",
-    files: [
-      ...createMemoryBankFiles(),
-      { source: "AGENTS.md", target: "AGENTS.md" },
-      { source: "IDENTITY.md", target: "IDENTITY.md" },
-      { source: "SOUL.md", target: "SOUL.md" },
-      { source: "USER.md", target: "USER.md" },
-    ],
+    files: OPENCLAW_FILES,
+    gitignoreEntries: createGitignoreEntries(OPENCLAW_FILES),
   },
   windsurf: {
     label: "Windsurf",
@@ -101,32 +136,16 @@ const PROVIDERS = {
     templateDir: "windsurf",
     contextPath: "memory-bank",
     rulesPath: ".windsurf/rules",
-    files: [
-      ...createMemoryBankFiles(),
-      { source: "AGENTS.md", target: "AGENTS.md" },
-      ...WINDSURF_RULE_FILES.map((file) => ({
-        source: `.windsurf/rules/${file}`,
-        target: `.windsurf/rules/${file}`,
-      })),
-    ],
+    files: WINDSURF_FILES,
+    gitignoreEntries: createGitignoreEntries(WINDSURF_FILES),
   },
   "claude-code": {
     label: "Claude Code",
     ready: true,
     templateDir: "claude-code",
     contextPath: "docs/context",
-    files: [
-      { source: "AGENTS.md", target: "AGENTS.md" },
-      { source: "CLAUDE.md", target: "CLAUDE.md" },
-      {
-        source: ".claude/commands/update-memory.md",
-        target: ".claude/commands/update-memory.md",
-      },
-      ...MEMORY_BANK_FILES.map((file) => ({
-        source: `docs/context/${file}`,
-        target: `docs/context/${file}`,
-      })),
-    ],
+    files: CLAUDE_CODE_FILES,
+    gitignoreEntries: createGitignoreEntries(CLAUDE_CODE_FILES),
   },
 };
 
@@ -169,7 +188,7 @@ function getExpectedFiles(providerName) {
     );
   }
 
-  return provider.files.map((file) => file.target);
+  return [...provider.files.map((file) => file.target), ".gitignore"];
 }
 
 function assertProviderReady(providerName) {

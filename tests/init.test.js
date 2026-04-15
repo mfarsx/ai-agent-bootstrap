@@ -22,6 +22,7 @@ const EXPECTED_FILES = [
   ".clinerules/workflows/status.md",
   ".clinerules/workflows/stuck.md",
   ".clineignore",
+  ".gitignore",
 ];
 
 const CURSOR_EXPECTED_FILES = [
@@ -37,6 +38,7 @@ const CURSOR_EXPECTED_FILES = [
   ".cursor/rules/01-coding-standards.mdc",
   ".cursor/rules/02-workflow.mdc",
   ".cursor/rules/03-boundaries.mdc",
+  ".gitignore",
 ];
 
 module.exports = async function registerInitTests({ test, assert }) {
@@ -65,6 +67,43 @@ module.exports = async function registerInitTests({ test, assert }) {
 
       const content = await fs.readFile(customFile, "utf-8");
       assert.strictEqual(content, "custom content");
+    });
+  });
+
+  test("initProject appends missing AI entries into existing .gitignore", async () => {
+    await withTempDir("ai-bootstrap-gitignore-merge-", async (targetDir) => {
+      const gitignorePath = path.join(targetDir, ".gitignore");
+      await fs.writeFile(
+        gitignorePath,
+        "node_modules/\ncustom.log\nmemory-bank/projectbrief.md\n",
+        "utf-8",
+      );
+
+      await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+
+      const content = await fs.readFile(gitignorePath, "utf-8");
+      assert.ok(content.includes("custom.log"));
+      assert.ok(content.includes(".clinerules/00-memory-bank.md"));
+
+      const entries = content.split(/\r?\n/);
+      const projectBriefEntries = entries.filter(
+        (entry) => entry.trim() === "memory-bank/projectbrief.md",
+      );
+      assert.strictEqual(projectBriefEntries.length, 1);
+    });
+  });
+
+  test("initProject keeps .gitignore entries idempotent across reruns", async () => {
+    await withTempDir("ai-bootstrap-gitignore-idempotent-", async (targetDir) => {
+      await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+      await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+
+      const content = await fs.readFile(path.join(targetDir, ".gitignore"), "utf-8");
+      const entries = content.split(/\r?\n/);
+      const ruleEntries = entries.filter(
+        (entry) => entry.trim() === ".clinerules/00-memory-bank.md",
+      );
+      assert.strictEqual(ruleEntries.length, 1);
     });
   });
 
@@ -99,6 +138,13 @@ module.exports = async function registerInitTests({ test, assert }) {
           `Expected cursor file missing: ${relativeFile}`,
         );
       }
+
+      const gitignoreContent = await fs.readFile(
+        path.join(targetDir, ".gitignore"),
+        "utf-8",
+      );
+      assert.ok(gitignoreContent.includes(".cursor/index.mdc"));
+      assert.ok(gitignoreContent.includes("AGENTS.md"));
     });
   });
 
@@ -118,6 +164,7 @@ module.exports = async function registerInitTests({ test, assert }) {
         "docs/context/systemPatterns.md",
         "docs/context/techContext.md",
         "docs/context/progress.md",
+        ".gitignore",
       ];
 
       for (const relativeFile of expectedFiles) {
@@ -128,6 +175,13 @@ module.exports = async function registerInitTests({ test, assert }) {
           `Expected claude-code file missing: ${relativeFile}`,
         );
       }
+
+      const gitignoreContent = await fs.readFile(
+        path.join(targetDir, ".gitignore"),
+        "utf-8",
+      );
+      assert.ok(gitignoreContent.includes("docs/context/projectbrief.md"));
+      assert.ok(gitignoreContent.includes("CLAUDE.md"));
     });
   });
 

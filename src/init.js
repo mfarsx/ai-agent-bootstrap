@@ -4,6 +4,7 @@ const chalk = require("chalk");
 const { askQuestions, getDefaults } = require("./prompts");
 const { fillTemplate } = require("./utils");
 const { assertProviderReady } = require("./providers");
+const { mergeGitignoreEntries } = require("./gitignore");
 
 const TEMPLATE_DIR = path.join(__dirname, "..", "templates");
 
@@ -52,6 +53,18 @@ async function initProject(options) {
     await fs.writeFile(targetFile, content, "utf-8");
     console.log(chalk.green(`  ✔  ${file.target}`));
     created++;
+  }
+
+  const gitignoreResult = await mergeGitignoreEntries(
+    targetDir,
+    provider.gitignoreEntries,
+  );
+  if (gitignoreResult.added > 0) {
+    console.log(
+      chalk.green(`  ✔  .gitignore (${gitignoreResult.added} entries added)`),
+    );
+  } else {
+    console.log(chalk.yellow("  ⏭  .gitignore (already up to date)"));
   }
 
   // Summary

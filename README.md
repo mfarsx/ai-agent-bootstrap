@@ -19,7 +19,7 @@ ai-bootstrap init
 
 ## What It Does
 
-Running `ai-bootstrap init` (default `--provider cline`) creates provider-specific files.
+Running `ai-bootstrap init` (default `--provider cline`) creates provider-specific files and appends generated AI paths into the target `.gitignore`.
 
 For `--provider cline`:
 
@@ -109,7 +109,9 @@ Set it up once. Every session starts informed.
 
 ## Safe to Re-run
 
-Already have some files? No problem — `init` skips existing files and only creates what's missing.
+Already have some files? No problem — `init` skips existing scaffold files and only creates what's missing.
+
+For `.gitignore`, `init` uses a non-destructive merge: existing lines stay untouched, and only missing AI scaffold entries are appended once.
 
 ## License
 
