@@ -1,36 +1,38 @@
-const path = require('path');
-const fs = require('fs-extra');
-const chalk = require('chalk');
-const { askQuestions, getDefaults } = require('./prompts');
-const { fillTemplate } = require('./utils');
+const path = require("path");
+const fs = require("fs-extra");
+const chalk = require("chalk");
+const { askQuestions, getDefaults } = require("./prompts");
+const { fillTemplate } = require("./utils");
 
-const TEMPLATE_DIR = path.join(__dirname, '..', 'templates');
+const TEMPLATE_DIR = path.join(__dirname, "..", "templates");
 
 const FILE_MAP = {
-  'memory-bank': [
-    'projectbrief.md',
-    'productContext.md',
-    'activeContext.md',
-    'systemPatterns.md',
-    'techContext.md',
-    'progress.md',
+  "memory-bank": [
+    "projectbrief.md",
+    "productContext.md",
+    "activeContext.md",
+    "systemPatterns.md",
+    "techContext.md",
+    "progress.md",
   ],
-  '.clinerules': [
-    '00-memory-bank.md',
-    '01-coding-standards.md',
-    '02-workflow.md',
-    '03-boundaries.md',
+  ".clinerules": [
+    "00-memory-bank.md",
+    "01-coding-standards.md",
+    "02-workflow.md",
+    "03-boundaries.md",
   ],
 };
 
 async function initProject(options) {
-  const targetDir = path.resolve(options.dir || '.');
+  const targetDir = path.resolve(options.dir || ".");
 
-  console.log(chalk.cyan('\n🤖 AI Agent Bootstrap\n'));
+  console.log(chalk.cyan("\n🤖 AI Agent Bootstrap\n"));
   console.log(chalk.gray(`Target: ${targetDir}\n`));
 
   // Gather project info
-  const data = options.yes ? getDefaults() : await askQuestions();
+  const data = options.yes
+    ? getDefaults(targetDir)
+    : await askQuestions(targetDir);
 
   let created = 0;
   let skipped = 0;
@@ -43,8 +45,8 @@ async function initProject(options) {
       const targetFile = path.join(targetFolder, file);
       const templateFile = path.join(
         TEMPLATE_DIR,
-        folder === '.clinerules' ? 'clinerules' : folder,
-        file
+        folder === ".clinerules" ? "clinerules" : folder,
+        file,
       );
 
       // Skip if file already exists
@@ -55,35 +57,47 @@ async function initProject(options) {
       }
 
       // Read template and fill placeholders
-      let content = await fs.readFile(templateFile, 'utf-8');
+      let content = await fs.readFile(templateFile, "utf-8");
       content = fillTemplate(content, data);
 
-      await fs.writeFile(targetFile, content, 'utf-8');
+      await fs.writeFile(targetFile, content, "utf-8");
       console.log(chalk.green(`  ✔  ${folder}/${file}`));
       created++;
     }
   }
 
   // Create .clineignore if it doesn't exist
-  const ignoreFile = path.join(targetDir, '.clineignore');
+  const ignoreFile = path.join(targetDir, ".clineignore");
   if (!(await fs.pathExists(ignoreFile))) {
-    const ignoreTemplate = path.join(TEMPLATE_DIR, '.clineignore');
+    const ignoreTemplate = path.join(TEMPLATE_DIR, ".clineignore");
     await fs.copy(ignoreTemplate, ignoreFile);
-    console.log(chalk.green('  ✔  .clineignore'));
+    console.log(chalk.green("  ✔  .clineignore"));
     created++;
   } else {
-    console.log(chalk.yellow('  ⏭  .clineignore (already exists)'));
+    console.log(chalk.yellow("  ⏭  .clineignore (already exists)"));
     skipped++;
   }
 
   // Summary
-  console.log(chalk.cyan(`\n✨ Done! ${created} files created, ${skipped} skipped.\n`));
+  console.log(
+    chalk.cyan(`\n✨ Done! ${created} files created, ${skipped} skipped.\n`),
+  );
 
   if (created > 0) {
-    console.log(chalk.gray('Next steps:'));
-    console.log(chalk.gray('  1. Fill in the memory-bank files with your project details'));
-    console.log(chalk.gray('  2. Review .clinerules and adjust to your workflow'));
-    console.log(chalk.gray('  3. Start your AI agent — it will read these files automatically\n'));
+    console.log(chalk.gray("Next steps:"));
+    console.log(
+      chalk.gray(
+        "  1. Fill in the memory-bank files with your project details",
+      ),
+    );
+    console.log(
+      chalk.gray("  2. Review .clinerules and adjust to your workflow"),
+    );
+    console.log(
+      chalk.gray(
+        "  3. Start your AI agent — it will read these files automatically\n",
+      ),
+    );
   }
 }
 

@@ -14,7 +14,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "node bin/cli.js"
+    "start": "node bin/cli.js",
+    "test": "node tests/run-tests.js"
   },
   "keywords": [
     "ai",

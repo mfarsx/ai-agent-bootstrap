@@ -2,6 +2,8 @@
 
 ## Overview
 
+**Project:** {{PROJECT_NAME}}
+
 {{PROJECT_DESCRIPTION}}
 
 ## Goals

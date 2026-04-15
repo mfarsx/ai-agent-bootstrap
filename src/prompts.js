@@ -1,69 +1,71 @@
-const inquirer = require('inquirer');
+const inquirer = require("inquirer");
 
-const QUESTIONS = [
-  {
-    type: 'input',
-    name: 'projectName',
-    message: 'Project name:',
-    default: () => {
-      const path = require('path');
-      return path.basename(process.cwd());
+function getQuestions(targetDir) {
+  return [
+    {
+      type: "input",
+      name: "projectName",
+      message: "Project name:",
+      default: () => {
+        const path = require("path");
+        return path.basename(targetDir);
+      },
     },
-  },
-  {
-    type: 'input',
-    name: 'projectDescription',
-    message: 'Short project description:',
-    default: '',
-  },
-  {
-    type: 'list',
-    name: 'stack',
-    message: 'Primary tech stack:',
-    choices: [
-      'Node.js',
-      'React',
-      'Next.js',
-      'Vue',
-      'Python',
-      'TypeScript',
-      'Go',
-      'Other',
-    ],
-  },
-  {
-    type: 'input',
-    name: 'stackOther',
-    message: 'Specify your stack:',
-    when: (answers) => answers.stack === 'Other',
-  },
-  {
-    type: 'checkbox',
-    name: 'extras',
-    message: 'Additional tools/frameworks:',
-    choices: [
-      'Tailwind CSS',
-      'Docker',
-      'PostgreSQL',
-      'MongoDB',
-      'Redis',
-      'GraphQL',
-      'REST API',
-      'Prisma',
-    ],
-  },
-  {
-    type: 'input',
-    name: 'targetAudience',
-    message: 'Target audience (who is this for?):',
-    default: '',
-  },
-];
+    {
+      type: "input",
+      name: "projectDescription",
+      message: "Short project description:",
+      default: "",
+    },
+    {
+      type: "list",
+      name: "stack",
+      message: "Primary tech stack:",
+      choices: [
+        "Node.js",
+        "React",
+        "Next.js",
+        "Vue",
+        "Python",
+        "TypeScript",
+        "Go",
+        "Other",
+      ],
+    },
+    {
+      type: "input",
+      name: "stackOther",
+      message: "Specify your stack:",
+      when: (answers) => answers.stack === "Other",
+    },
+    {
+      type: "checkbox",
+      name: "extras",
+      message: "Additional tools/frameworks:",
+      choices: [
+        "Tailwind CSS",
+        "Docker",
+        "PostgreSQL",
+        "MongoDB",
+        "Redis",
+        "GraphQL",
+        "REST API",
+        "Prisma",
+      ],
+    },
+    {
+      type: "input",
+      name: "targetAudience",
+      message: "Target audience (who is this for?):",
+      default: "",
+    },
+  ];
+}
 
-async function askQuestions() {
-  const answers = await inquirer.prompt(QUESTIONS);
+async function askQuestions(targetDir) {
+  const answers = await inquirer.prompt(getQuestions(targetDir));
 
-  if (answers.stack === 'Other' && answers.stackOther) {
+  if (answers.stack === "Other" && answers.stackOther) {
     answers.stack = answers.stackOther;
   }
   delete answers.stackOther;
@@ -71,14 +73,14 @@ async function askQuestions() {
   return answers;
 }
 
-function getDefaults() {
-  const path = require('path');
+function getDefaults(targetDir) {
+  const path = require("path");
   return {
-    projectName: path.basename(process.cwd()),
-    projectDescription: '',
-    stack: '',
+    projectName: path.basename(targetDir),
+    projectDescription: "",
+    stack: "",
     extras: [],
-    targetAudience: '',
+    targetAudience: "",
   };
 }
 
