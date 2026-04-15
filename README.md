@@ -59,7 +59,56 @@ ai-bootstrap init -p cursor      # Cursor templates
 ai-bootstrap init -p openclaw    # OpenClaw templates
 ai-bootstrap init -p windsurf    # Windsurf templates
 ai-bootstrap init -p claude-code # Claude Code templates
+ai-bootstrap init --config ./bootstrap.config.json
+ai-bootstrap init --var OWNER_NAME=platform-team
+ai-bootstrap init --var OWNER_NAME=platform --var BUILD_COMMAND="npm run build"
+ai-bootstrap init --config ./bootstrap.config.json --var OWNER_NAME=cli-override
 ```
+
+### Customization Inputs
+
+`init` supports multiple input sources:
+
+- prompt answers (interactive mode)
+- built-in defaults (`-y`)
+- config file (`--config`)
+- variable overrides (`--var KEY=VALUE`, repeatable)
+
+Precedence is:
+
+- context: defaults < prompt < config < CLI overrides
+- template variables: defaults < config.templateVariables < `--var`
+
+### Config File (`--config`)
+
+`--config` accepts a JSON object with optional `context` and `templateVariables`.
+
+```json
+{
+  "context": {
+    "provider": "cursor",
+    "stack": "TypeScript",
+    "projectName": "my-project"
+  },
+  "templateVariables": {
+    "OWNER_NAME": "platform-team",
+    "BUILD_COMMAND": "npm run build"
+  }
+}
+```
+
+`templateVariables` can also be provided as an array of `KEY=VALUE` entries:
+
+```json
+{
+  "templateVariables": [
+    "OWNER_NAME=platform-team",
+    "BUILD_COMMAND=npm run build"
+  ]
+}
+```
+
+If config loading fails, CLI now reports errors as `config error: ...` with a specific message.
 
 ### `ai-bootstrap status`
 
@@ -81,11 +130,12 @@ templates/
 ├── claude-code/
 ├── cline/
 │   ├── .clinerules/
-│   ├── memory-bank/
 │   └── .clineignore
 ├── cursor/
 │   └── .cursor/rules/*.mdc
 ├── openclaw/
+├── shared/
+│   └── memory-bank/
 └── windsurf/
 ```
 

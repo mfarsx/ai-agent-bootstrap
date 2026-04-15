@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs-extra");
 const { checkStatus } = require("../src/status");
+const { getExpectedFiles } = require("../src/providers");
 const { withTempDir, captureConsole } = require("./helpers");
 
 module.exports = async function registerStatusTests({ test, assert }) {
@@ -122,6 +123,82 @@ module.exports = async function registerStatusTests({ test, assert }) {
       assert.ok(text.includes("Provider: Claude Code"));
       assert.ok(text.includes("📊 1/10 files found."));
       assert.ok(text.includes(".claude/commands/update-memory.md"));
+    });
+  });
+
+  test("checkStatus reports openclaw provider file totals", async () => {
+    await withTempDir("ai-bootstrap-status-openclaw-", async (targetDir) => {
+      await fs.ensureDir(path.join(targetDir, "memory-bank"));
+      await fs.writeFile(
+        path.join(targetDir, "memory-bank", "projectbrief.md"),
+        "ok",
+        "utf-8",
+      );
+      await fs.writeFile(path.join(targetDir, "AGENTS.md"), "ok", "utf-8");
+
+      const output = await captureConsole(() =>
+        checkStatus({ dir: targetDir, provider: "openclaw" }),
+      );
+      const text = output.logs.join("\n");
+
+      assert.ok(text.includes("Provider: OpenClaw"));
+      assert.ok(text.includes(".gitignore"));
+      assert.ok(text.includes("memory-bank/projectbrief.md"));
+    });
+  });
+
+  test("checkStatus reports windsurf provider file totals", async () => {
+    await withTempDir("ai-bootstrap-status-windsurf-", async (targetDir) => {
+      await fs.ensureDir(path.join(targetDir, "memory-bank"));
+      await fs.writeFile(
+        path.join(targetDir, "memory-bank", "projectbrief.md"),
+        "ok",
+        "utf-8",
+      );
+      await fs.ensureDir(path.join(targetDir, ".windsurf", "rules"));
+      await fs.writeFile(
+        path.join(targetDir, ".windsurf", "rules", "00-memory-bank.md"),
+        "ok",
+        "utf-8",
+      );
+
+      const output = await captureConsole(() =>
+        checkStatus({ dir: targetDir, provider: "windsurf" }),
+      );
+      const text = output.logs.join("\n");
+
+      assert.ok(text.includes("Provider: Windsurf"));
+      assert.ok(text.includes(".windsurf/rules/00-memory-bank.md"));
+      assert.ok(text.includes(".gitignore"));
+    });
+  });
+
+  test("checkStatus returns structured report contract", async () => {
+    await withTempDir("ai-bootstrap-status-contract-", async (targetDir) => {
+      await fs.ensureDir(path.join(targetDir, "memory-bank"));
+      await fs.writeFile(
+        path.join(targetDir, "memory-bank", "projectbrief.md"),
+        "ok",
+        "utf-8",
+      );
+
+      const report = checkStatus({ dir: targetDir, provider: "cursor" });
+      const expectedFiles = getExpectedFiles("cursor");
+
+      assert.strictEqual(typeof report.targetDir, "string");
+      assert.strictEqual(report.provider.name, "cursor");
+      assert.strictEqual(Array.isArray(report.entries), true);
+      assert.strictEqual(report.expectedFiles.length, expectedFiles.length);
+      assert.strictEqual(report.found + report.missing, report.expectedFiles.length);
+      assert.strictEqual(report.entries.length, report.expectedFiles.length);
+      assert.strictEqual(
+        report.entries.every((entry) => typeof entry.file === "string"),
+        true,
+      );
+      assert.strictEqual(
+        report.entries.every((entry) => typeof entry.exists === "boolean"),
+        true,
+      );
     });
   });
 };

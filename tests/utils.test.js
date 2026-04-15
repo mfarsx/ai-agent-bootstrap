@@ -60,8 +60,8 @@ module.exports = async function registerUtilsTests({ test, assert }) {
   test("fillTemplate resolves placeholders in shipped templates", async () => {
     const templatesRoot = path.join(__dirname, "..", "templates");
     const filePaths = [
-      path.join(templatesRoot, "cline", "memory-bank", "projectbrief.md"),
-      path.join(templatesRoot, "cline", "memory-bank", "techContext.md"),
+      path.join(templatesRoot, "shared", "memory-bank", "projectbrief.md"),
+      path.join(templatesRoot, "shared", "memory-bank", "techContext.md"),
       path.join(templatesRoot, "cursor", "AGENTS.md"),
       path.join(templatesRoot, "windsurf", "AGENTS.md"),
       path.join(templatesRoot, "claude-code", "AGENTS.md"),

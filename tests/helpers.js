@@ -68,8 +68,45 @@ function runCli(args, options = {}) {
   });
 }
 
+function runNodeScript(script, options = {}) {
+  const cwd = options.cwd || process.cwd();
+  const env = {
+    ...process.env,
+    FORCE_COLOR: "0",
+    ...options.env,
+  };
+
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, ["-e", script], {
+      cwd,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("close", (code) => {
+      resolve({
+        code: code === null ? 1 : code,
+        stdout,
+        stderr,
+      });
+    });
+  });
+}
+
 module.exports = {
   withTempDir,
   captureConsole,
   runCli,
+  runNodeScript,
 };
