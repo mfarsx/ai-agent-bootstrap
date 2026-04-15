@@ -15,7 +15,12 @@
   ],
   "scripts": {
     "start": "node bin/cli.js",
-    "test": "node tests/run-tests.js"
+    "test": "node tests/run-tests.js",
+    "init": "node bin/cli.js init",
+    "status": "node bin/cli.js status",
+    "pack:dry-run": "npm pack --dry-run",
+    "publish:check": "npm run test && npm run pack:dry-run",
+    "prepublishOnly": "npm run publish:check"
   },
   "keywords": [
     "ai",
