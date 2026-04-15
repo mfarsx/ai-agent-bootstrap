@@ -45,7 +45,7 @@ function createMemoryBankFiles() {
   return MEMORY_BANK_FILES.map((file) => ({
     source: `memory-bank/${file}`,
     target: `memory-bank/${file}`,
-    sourceProvider: "cline",
+    sourceProvider: "shared",
   }));
 }
 
@@ -218,7 +218,9 @@ function validateProviderDefinition(
     }
 
     const sourceProviderName = file.sourceProvider || provider.templateDir;
-    if (!providers[sourceProviderName]) {
+    const knownSourceProvider =
+      sourceProviderName === "shared" || Boolean(providers[sourceProviderName]);
+    if (!knownSourceProvider) {
       errors.push(
         `Provider "${providerName}" file "${file.target}" references unknown sourceProvider "${sourceProviderName}".`,
       );

@@ -130,11 +130,12 @@ templates/
 ├── claude-code/
 ├── cline/
 │   ├── .clinerules/
-│   ├── memory-bank/
 │   └── .clineignore
 ├── cursor/
 │   └── .cursor/rules/*.mdc
 ├── openclaw/
+├── shared/
+│   └── memory-bank/
 └── windsurf/
 ```
 

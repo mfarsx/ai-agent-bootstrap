@@ -265,7 +265,7 @@ module.exports = async function registerInitTests({ test, assert }) {
       nodeFs.existsSync = (filePath) => {
         if (
           String(filePath).includes(
-            path.join("templates", "cline", "memory-bank", "projectbrief.md"),
+            path.join("templates", "shared", "memory-bank", "projectbrief.md"),
           )
         ) {
           return false;

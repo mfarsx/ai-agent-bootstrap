@@ -13,13 +13,13 @@ node_modules/
 /.windsurf
 /.claude
 /docs/context
-.cursorignore
-.cursor*
-AGENTS.md
-CLAUDE.md
-IDENTITY.md
-SOUL.md
-USER.md
+/.cursorignore
+/.cursor*
+/AGENTS.md
+/CLAUDE.md
+/IDENTITY.md
+/SOUL.md
+/USER.md
 
 # local temporary artifacts
 ai-agent-bootstrap-*
