@@ -1,87 +1,106 @@
 # ai-agent-bootstrap
 
-Bootstrap AI-agent-ready development environments with a single command.
+Bootstrap AI-agent-ready project context with a single command.
 
-Injects agent-specific context files into any project for Cline, Cursor, OpenClaw, Windsurf, and Claude Code.
+`ai-agent-bootstrap` injects provider-specific context and rules into any project for Cline, Cursor, OpenClaw, Windsurf, and Claude Code.
 
-## Install & Use
+## Quick Start (30 Seconds)
 
 ```bash
-# Recommended quick start (no install needed)
+# Recommended (no install needed)
 npx ai-agent-bootstrap init
+```
 
-# For repeated use, install globally
+For repeated local usage:
+
+```bash
 npm install -g ai-agent-bootstrap
 ai-bootstrap init
 ```
 
-> **Note for npm users:** the npm package page may show a generic `npm i ai-agent-bootstrap` install snippet. This package is a CLI tool, so the intended usage is `npx ai-agent-bootstrap init` (quick start) or global install + `ai-bootstrap init`.
+## Safe by Default
 
-## What It Does
+- `init` never overwrites existing scaffold files (skip-existing by design).
+- `.gitignore` is merged non-destructively: only missing AI scaffold entries are appended once.
 
-Running `ai-bootstrap init` (default `--provider cline`) creates provider-specific files and appends generated AI paths into the target `.gitignore`.
+## What You Get
 
-For `--provider cline`:
+Running `ai-bootstrap init` (default `--provider cline`) creates provider-specific AI context files and updates `.gitignore`.
 
-```
+Typical generated structure for `--provider cline`:
+
+```text
 your-project/
 ├── memory-bank/
-│   ├── projectbrief.md      # Core requirements and goals
-│   ├── productContext.md     # Why the project exists, UX goals
-│   ├── activeContext.md      # Current focus, recent changes, next steps
-│   ├── systemPatterns.md     # Architecture decisions, design patterns
-│   ├── techContext.md        # Tech stack, setup, dependencies
-│   └── progress.md           # What works, what's left, known issues
+│   ├── projectbrief.md
+│   ├── productContext.md
+│   ├── activeContext.md
+│   ├── systemPatterns.md
+│   ├── techContext.md
+│   └── progress.md
 ├── .clinerules/
-│   ├── 00-memory-bank.md     # Memory bank rules
-│   ├── 01-coding-standards.md # Code style and conventions
-│   ├── 02-workflow.md        # Plan-first development workflow
-│   ├── 03-boundaries.md     # Hard limits for the AI agent
+│   ├── 00-memory-bank.md
+│   ├── 01-coding-standards.md
+│   ├── 02-workflow.md
+│   ├── 03-boundaries.md
 │   └── workflows/
-│      ├── plan.md
-│      ├── review.md
-│      └── ...
-└── .clineignore              # Files the agent should ignore
+└── .clineignore
 ```
 
-## Commands
+## Choose Your Provider
 
-### `ai-bootstrap init`
+Use `-p, --provider <name>` with one of the following:
 
-Interactive setup — asks about your project and pre-fills templates.
+| Provider | Best for | Context path | Rules / key files |
+| --- | --- | --- | --- |
+| `cline` | Cline setup | `memory-bank/` | `.clinerules/`, `.clineignore` |
+| `cursor` | Cursor setup | `memory-bank/` | `.cursor/rules/`, `AGENTS.md`, `.cursor/index.mdc` |
+| `openclaw` | OpenClaw setup | `memory-bank/` | `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md` |
+| `windsurf` | Windsurf setup | `memory-bank/` | `.windsurf/rules/`, `AGENTS.md` |
+| `claude-code` | Claude Code setup | `docs/context/` | `CLAUDE.md`, `AGENTS.md`, `.claude/commands/update-memory.md` |
+
+## CLI Reference
+
+### Common Commands
 
 ```bash
-ai-bootstrap init              # Interactive mode
-ai-bootstrap init -y           # Skip prompts, use defaults
-ai-bootstrap init -d ./myapp   # Target a specific directory
-ai-bootstrap init -p cline       # Cline templates
-ai-bootstrap init -p cursor      # Cursor templates
-ai-bootstrap init -p openclaw    # OpenClaw templates
-ai-bootstrap init -p windsurf    # Windsurf templates
-ai-bootstrap init -p claude-code # Claude Code templates
+ai-bootstrap init            # Interactive mode
+ai-bootstrap init -y         # Skip prompts, use defaults
+ai-bootstrap init -d ./myapp # Target directory
+ai-bootstrap status          # Check generated files
+```
+
+### Select a Provider
+
+```bash
+ai-bootstrap init -p cline
+ai-bootstrap init -p cursor
+ai-bootstrap init -p openclaw
+ai-bootstrap init -p windsurf
+ai-bootstrap init -p claude-code
+```
+
+```bash
+ai-bootstrap status -p cline
+ai-bootstrap status -p cursor
+ai-bootstrap status -p claude-code
+```
+
+### Advanced Inputs (`--config`, `--var`)
+
+```bash
 ai-bootstrap init --config ./bootstrap.config.json
 ai-bootstrap init --var OWNER_NAME=platform-team
 ai-bootstrap init --var OWNER_NAME=platform --var BUILD_COMMAND="npm run build"
 ai-bootstrap init --config ./bootstrap.config.json --var OWNER_NAME=cli-override
 ```
 
-### Customization Inputs
-
-`init` supports multiple input sources:
-
-- prompt answers (interactive mode)
-- built-in defaults (`-y`)
-- config file (`--config`)
-- variable overrides (`--var KEY=VALUE`, repeatable)
-
-Precedence is:
+Input precedence:
 
 - context: defaults < prompt < config < CLI overrides
 - template variables: defaults < config.templateVariables < `--var`
 
-### Config File (`--config`)
-
-`--config` accepts a JSON object with optional `context` and `templateVariables`.
+Config format (`--config`):
 
 ```json
 {
@@ -97,7 +116,7 @@ Precedence is:
 }
 ```
 
-`templateVariables` can also be provided as an array of `KEY=VALUE` entries:
+`templateVariables` may also be an array of `KEY=VALUE` entries:
 
 ```json
 {
@@ -108,24 +127,13 @@ Precedence is:
 }
 ```
 
-If config loading fails, CLI now reports errors as `config error: ...` with a specific message.
-
-### `ai-bootstrap status`
-
-Check which AI agent files exist in your project.
-
-```bash
-ai-bootstrap status
-ai-bootstrap status -p cline
-ai-bootstrap status -p cursor
-ai-bootstrap status -p claude-code
-```
+If config loading fails, the CLI reports `config error: ...` with a specific message.
 
 ## Template Structure (Provider-Based)
 
-The internal template source tree is organized by provider:
+Internal template sources:
 
-```
+```text
 templates/
 ├── claude-code/
 ├── cline/
@@ -139,29 +147,18 @@ templates/
 └── windsurf/
 ```
 
-Memory context is generated under:
+## Why This Exists
 
-- `memory-bank/` for `cline`, `cursor`, `openclaw`, and `windsurf`
-- `docs/context/` for `claude-code`
-
-## Why?
-
-AI coding agents work best when they have context. Without it, they guess — wrong file structure, wrong patterns, wrong decisions.
+AI coding agents are much more reliable when they get explicit project memory, standards, workflow, and boundaries from day one.
 
 This tool gives your agent:
 
-- **Memory** — persistent context across sessions via memory-bank
-- **Standards** — coding conventions it must follow
-- **Workflow** — a plan-first approach to every task
-- **Boundaries** — hard limits it can't cross without your approval
+- **Memory**: persistent project context across sessions
+- **Standards**: coding rules and conventions
+- **Workflow**: plan-first execution guidance
+- **Boundaries**: hard limits requiring human approval
 
-Set it up once. Every session starts informed.
-
-## Safe to Re-run
-
-Already have some files? No problem — `init` skips existing scaffold files and only creates what's missing.
-
-For `.gitignore`, `init` uses a non-destructive merge: existing lines stay untouched, and only missing AI scaffold entries are appended once.
+Set it up once, then start every session with context.
 
 ## License
 
