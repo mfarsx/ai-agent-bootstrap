@@ -1,0 +1,46 @@
+{
+  "name": "ai-agent-bootstrap",
+  "version": "1.1.0",
+  "description": "Bootstrap AI-agent-ready development environments with memory-bank, coding standards, and workflow rules. One command to inject .clinerules and memory-bank into any project.",
+  "main": "src/index.js",
+  "bin": {
+    "ai-bootstrap": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "templates/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node bin/cli.js"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "bootstrap",
+    "cline",
+    "memory-bank",
+    "dev-tools",
+    "cli",
+    "scaffold",
+    "ai-coding",
+    "workflow"
+  ],
+  "author": "mfarsx",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mfarsx/ai-agent-bootstrap"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "inquirer": "^8.2.6",
+    "fs-extra": "^11.2.0"
+  }
+}

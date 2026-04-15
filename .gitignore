@@ -1,0 +1,7 @@
+# dependencies
+node_modules/
+
+.env
+/.clinerules
+/.clineignore
+/memory-bank
