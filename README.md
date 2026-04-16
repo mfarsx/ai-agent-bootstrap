@@ -2,32 +2,28 @@
 
 Bootstrap AI-agent-ready project context with a single command.
 
-`ai-agent-bootstrap` injects provider-specific context and rules into any project for Cline, Cursor, OpenClaw, Windsurf, and Claude Code.
+Scaffolds provider-specific memory, rules, workflows, and boundaries for **Cline**, **Cursor**, **OpenClaw**, **Windsurf**, and **Claude Code**.
 
-## Quick Start (30 Seconds)
+## Quick Start
 
 ```bash
-# Recommended (no install needed)
 npx ai-agent-bootstrap init
 ```
 
-For repeated local usage:
+That's it. No install needed. The CLI asks a few questions and generates everything.
+
+For repeated use:
 
 ```bash
 npm install -g ai-agent-bootstrap
 ai-bootstrap init
 ```
 
-## Safe by Default
-
-- `init` never overwrites existing scaffold files (skip-existing by design).
-- `.gitignore` is merged non-destructively: only missing AI scaffold entries are appended once.
-
 ## What You Get
 
-Running `ai-bootstrap init` (default `--provider cline`) creates provider-specific AI context files and updates `.gitignore`.
+Running `ai-bootstrap init` creates provider-specific AI context files and updates `.gitignore`.
 
-Typical generated structure for `--provider cline`:
+For `--provider cline` (default):
 
 ```text
 your-project/
@@ -44,63 +40,78 @@ your-project/
 │   ├── 02-workflow.md
 │   ├── 03-boundaries.md
 │   └── workflows/
+│       ├── init-memory.md
+│       ├── update-memory.md
+│       ├── plan.md
+│       ├── review.md
+│       ├── commit.md
+│       └── ...
 └── .clineignore
 ```
 
-## Choose Your Provider
+After init, the CLI tells you what to do next based on your provider:
 
-Use `-p, --provider <name>` with one of the following:
+- **Fresh install** &rarr; run `/init-memory` (Cline) or `@init-memory` (Cursor) to populate memory-bank
+- **Re-run with existing files** &rarr; run `/update-memory` or `@update-memory` to sync
 
-| Provider | Best for | Context path | Rules / key files |
+## Providers
+
+| Provider | Context path | Key files | Memory workflow |
 | --- | --- | --- | --- |
-| `cline` | Cline setup | `memory-bank/` | `.clinerules/`, `.clineignore` |
-| `cursor` | Cursor setup | `memory-bank/` | `.cursor/rules/`, `AGENTS.md`, `.cursor/index.mdc` |
-| `openclaw` | OpenClaw setup | `memory-bank/` | `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md` |
-| `windsurf` | Windsurf setup | `memory-bank/` | `.windsurf/rules/`, `AGENTS.md` |
-| `claude-code` | Claude Code setup | `docs/context/` | `CLAUDE.md`, `AGENTS.md`, `.claude/commands/update-memory.md` |
+| `cline` | `memory-bank/` | `.clinerules/`, `.clineignore` | `/init-memory`, `/update-memory` |
+| `cursor` | `memory-bank/` | `.cursor/rules/`, `AGENTS.md` | `@init-memory`, `@update-memory` |
+| `openclaw` | `memory-bank/` | `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md` | manual |
+| `windsurf` | `memory-bank/` | `.windsurf/rules/`, `AGENTS.md` | manual |
+| `claude-code` | `docs/context/` | `CLAUDE.md`, `AGENTS.md` | `/update-memory` |
 
-## CLI Reference
+## Commands
 
-### Common Commands
+### `init`
+
+Scaffold AI agent files into a project.
 
 ```bash
-ai-bootstrap init            # Interactive mode
-ai-bootstrap init -y         # Skip prompts, use defaults
-ai-bootstrap init -d ./myapp # Target directory
-ai-bootstrap status          # Check generated files
+ai-bootstrap init                  # Interactive
+ai-bootstrap init -y               # Skip prompts, use defaults
+ai-bootstrap init -p cursor        # Use a specific provider
+ai-bootstrap init -d ./myapp       # Target a different directory
+ai-bootstrap init --dry-run        # Preview without writing
 ```
 
-### Select a Provider
+### `status`
+
+Check which AI agent files exist in a project.
 
 ```bash
-ai-bootstrap init -p cline
-ai-bootstrap init -p cursor
-ai-bootstrap init -p openclaw
-ai-bootstrap init -p windsurf
-ai-bootstrap init -p claude-code
-```
-
-```bash
-ai-bootstrap status -p cline
+ai-bootstrap status
 ai-bootstrap status -p cursor
-ai-bootstrap status -p claude-code
 ```
 
-### Advanced Inputs (`--config`, `--var`)
+### `reset`
+
+Re-generate scaffold files from templates. Shows a diff and asks for confirmation before overwriting.
 
 ```bash
-ai-bootstrap init --config ./bootstrap.config.json
-ai-bootstrap init --var OWNER_NAME=platform-team
-ai-bootstrap init --var OWNER_NAME=platform --var BUILD_COMMAND="npm run build"
-ai-bootstrap init --config ./bootstrap.config.json --var OWNER_NAME=cli-override
+ai-bootstrap reset                 # Interactive diff + confirm
+ai-bootstrap reset --dry-run       # Preview diff only
+ai-bootstrap reset -y              # Skip confirmation
+ai-bootstrap reset -p cursor       # Reset a specific provider
 ```
 
-Input precedence:
+### Common Options
 
-- context: defaults < prompt < config < CLI overrides
-- template variables: defaults < config.templateVariables < `--var`
+| Option | Available on | Description |
+| --- | --- | --- |
+| `-p, --provider <name>` | all | Provider (cline, cursor, openclaw, windsurf, claude-code) |
+| `-d, --dir <path>` | all | Target directory (default: `.`) |
+| `-y, --yes` | init, reset | Skip prompts |
+| `--dry-run` | init, reset | Preview changes without writing |
+| `--config <path>` | init, reset | Path to JSON config file |
+| `--var KEY=VALUE` | init | Template variable override (repeatable) |
 
-Config format (`--config`):
+## Config File
+
+Drop a `bootstrap.config.json` in your project root (auto-discovered) or pass `--config`:
 
 ```json
 {
@@ -116,47 +127,24 @@ Config format (`--config`):
 }
 ```
 
-`templateVariables` may also be an array of `KEY=VALUE` entries:
+Precedence: defaults < prompt answers < config file < `--var` CLI flags.
 
-```json
-{
-  "templateVariables": [
-    "OWNER_NAME=platform-team",
-    "BUILD_COMMAND=npm run build"
-  ]
-}
-```
+## Safe by Default
 
-If config loading fails, the CLI reports `config error: ...` with a specific message.
-
-## Template Structure (Provider-Based)
-
-Internal template sources:
-
-```text
-templates/
-├── claude-code/
-├── cline/
-│   ├── .clinerules/
-│   └── .clineignore
-├── cursor/
-│   └── .cursor/rules/*.mdc
-├── openclaw/
-├── shared/
-│   └── memory-bank/
-└── windsurf/
-```
+- `init` never overwrites existing files (skip-existing by design).
+- `reset` shows a diff and asks for confirmation before writing.
+- `.gitignore` is merged non-destructively: only missing entries are appended.
 
 ## Why This Exists
 
-AI coding agents are much more reliable when they get explicit project memory, standards, workflow, and boundaries from day one.
+AI coding agents work best with explicit context. Without it, they guess wrong.
 
 This tool gives your agent:
 
-- **Memory**: persistent project context across sessions
-- **Standards**: coding rules and conventions
-- **Workflow**: plan-first execution guidance
-- **Boundaries**: hard limits requiring human approval
+- **Memory** -- persistent project context across sessions
+- **Standards** -- coding rules and conventions
+- **Workflow** -- plan-first execution with built-in commands
+- **Boundaries** -- hard limits requiring human approval
 
 Set it up once, then start every session with context.
 
