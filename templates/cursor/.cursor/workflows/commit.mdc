@@ -1,0 +1,37 @@
+---
+description: "Stage and commit changes with pre-commit checks"
+alwaysApply: false
+---
+
+# /commit — Stage and Commit Changes
+
+## Steps
+
+1. **Scan changes**
+   - `git diff --stat` + `git diff` → all modified files
+   - `git status` → untracked files
+   - No changes? Inform user and stop.
+
+2. **Analyze & group**
+   - Group related changes into logical commits (1 commit = 1 logical change)
+   - Single logical unit → one commit
+   - Unrelated concerns → propose splitting
+
+3. **Pre-commit checks**
+   - Run linter: `npm run lint`
+   - Run tests: `npm test`
+   - Checks fail → show errors, offer to fix, do NOT proceed
+
+4. **Propose commits**
+   - Short, lowercase, ≤72 chars
+   - Show for approval
+
+5. **Wait for approval** — do NOT run `git commit` without explicit confirmation
+
+6. **Post-commit**: `git log --oneline -5` to confirm. Do NOT push.
+
+## Rules
+
+- Never `git add .` — stage only files belonging to each logical commit
+- Never commit `.env`, secrets, or generated/temp files
+- Never push — user handles push manually

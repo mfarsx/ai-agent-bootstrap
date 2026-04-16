@@ -49,3 +49,9 @@ Triggered when user types `/commit` in chat.
 - Never commit `.env`, secrets, or generated files unless explicitly told to
 - If unsure whether changes should be 1 or 2 commits, prefer smaller commits
 - Never push to remote — this workflow ends at local commit
+
+---
+
+## Project-specific guidance (optional)
+
+{{COMMIT_WORKFLOW_GUIDANCE}}

@@ -7,12 +7,13 @@ const { withTempDir, captureConsole } = require("./helpers");
 module.exports = async function registerStatusTests({ test, assert }) {
   test("checkStatus reports all files missing in empty directory", async () => {
     await withTempDir("ai-bootstrap-status-empty-", async (targetDir) => {
+      const total = getExpectedFiles("cline").length;
       const output = await captureConsole(() =>
         checkStatus({ dir: targetDir }),
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 0/19 files found."));
+      assert.ok(text.includes(`📊 0/${total} files found.`));
       assert.ok(text.includes("Run"));
       assert.ok(text.includes("ai-bootstrap init"));
       assert.ok(text.includes("create missing files"));
@@ -21,6 +22,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
 
   test("checkStatus reports partial coverage correctly", async () => {
     await withTempDir("ai-bootstrap-status-partial-", async (targetDir) => {
+      const total = getExpectedFiles("cline").length;
       await fs.ensureDir(path.join(targetDir, "memory-bank"));
       await fs.writeFile(
         path.join(targetDir, "memory-bank", "projectbrief.md"),
@@ -34,7 +36,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 2/19 files found."));
+      assert.ok(text.includes(`📊 2/${total} files found.`));
       assert.ok(text.includes("memory-bank/projectbrief.md"));
       assert.ok(text.includes(".clineignore"));
     });
@@ -42,27 +44,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
 
   test("checkStatus reports success when all required files exist", async () => {
     await withTempDir("ai-bootstrap-status-full-", async (targetDir) => {
-      const files = [
-        "memory-bank/projectbrief.md",
-        "memory-bank/productContext.md",
-        "memory-bank/activeContext.md",
-        "memory-bank/systemPatterns.md",
-        "memory-bank/techContext.md",
-        "memory-bank/progress.md",
-        ".clinerules/00-memory-bank.md",
-        ".clinerules/01-coding-standards.md",
-        ".clinerules/02-workflow.md",
-        ".clinerules/03-boundaries.md",
-        ".clinerules/workflows/checkpoint.md",
-        ".clinerules/workflows/cleanup.md",
-        ".clinerules/workflows/commit.md",
-        ".clinerules/workflows/plan.md",
-        ".clinerules/workflows/review.md",
-        ".clinerules/workflows/status.md",
-        ".clinerules/workflows/stuck.md",
-        ".clineignore",
-        ".gitignore",
-      ];
+      const files = getExpectedFiles("cline");
 
       for (const relativeFile of files) {
         const fullPath = path.join(targetDir, relativeFile);
@@ -75,13 +57,14 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes("📊 19/19 files found."));
+      assert.ok(text.includes(`📊 ${files.length}/${files.length} files found.`));
       assert.ok(text.includes("All files in place!"));
     });
   });
 
   test("checkStatus reports cursor provider file totals", async () => {
     await withTempDir("ai-bootstrap-status-cursor-", async (targetDir) => {
+      const total = getExpectedFiles("cursor").length;
       await fs.ensureDir(path.join(targetDir, "memory-bank"));
       await fs.writeFile(
         path.join(targetDir, "memory-bank", "projectbrief.md"),
@@ -101,7 +84,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       const text = output.logs.join("\n");
 
       assert.ok(text.includes("Provider: Cursor"));
-      assert.ok(text.includes("📊 2/13 files found."));
+      assert.ok(text.includes(`📊 2/${total} files found.`));
       assert.ok(text.includes(".cursor/rules/00-memory-bank.mdc"));
     });
   });
@@ -182,7 +165,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
         "utf-8",
       );
 
-      const report = checkStatus({ dir: targetDir, provider: "cursor" });
+      const report = await checkStatus({ dir: targetDir, provider: "cursor" });
       const expectedFiles = getExpectedFiles("cursor");
 
       assert.strictEqual(typeof report.targetDir, "string");
@@ -192,7 +175,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
       assert.strictEqual(report.found + report.missing, report.expectedFiles.length);
       assert.strictEqual(report.entries.length, report.expectedFiles.length);
       assert.strictEqual(
-        report.entries.every((entry) => typeof entry.file === "string"),
+        report.entries.every((entry) => typeof entry.target === "string"),
         true,
       );
       assert.strictEqual(

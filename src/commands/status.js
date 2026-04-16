@@ -10,10 +10,10 @@ function printStatusHeader(report) {
 function printStatusEntries(entries) {
   for (const entry of entries) {
     if (entry.exists) {
-      console.log(chalk.green(`  ✔  ${entry.file}`));
+      console.log(chalk.green(`  ✔  ${entry.target}`));
       continue;
     }
-    console.log(chalk.red(`  ✖  ${entry.file}`));
+    console.log(chalk.red(`  ✖  ${entry.target}`));
   }
 }
 
@@ -32,8 +32,8 @@ function printStatusSummary(report) {
   console.log(chalk.green("   All files in place! ✨\n"));
 }
 
-function checkStatus(options = {}) {
-  const report = buildStatusReport(options);
+async function checkStatus(options = {}) {
+  const report = await buildStatusReport(options);
   printStatusHeader(report);
   printStatusEntries(report.entries);
   printStatusSummary(report);
@@ -42,7 +42,4 @@ function checkStatus(options = {}) {
 
 module.exports = {
   checkStatus,
-  printStatusEntries,
-  printStatusHeader,
-  printStatusSummary,
 };

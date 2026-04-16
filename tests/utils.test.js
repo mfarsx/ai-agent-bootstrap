@@ -15,6 +15,9 @@ module.exports = async function registerUtilsTests({ test, assert }) {
       "{{TEST_COMMAND}}",
       "{{LINT_COMMAND}}",
       "{{PROJECT_STRUCTURE}}",
+      "{{PLAN_WORKFLOW_GUIDANCE}}",
+      "{{REVIEW_WORKFLOW_GUIDANCE}}",
+      "{{COMMIT_WORKFLOW_GUIDANCE}}",
     ].join("\n");
 
     const output = fillTemplate(template, {
@@ -28,6 +31,9 @@ module.exports = async function registerUtilsTests({ test, assert }) {
       testCommand: "npm test",
       lintCommand: "npm run lint",
       projectStructure: "src/\n  └── index.js",
+      planWorkflowGuidance: "Plan hint",
+      reviewWorkflowGuidance: "Review hint",
+      commitWorkflowGuidance: "Commit hint",
     });
 
     assert.ok(output.includes("demo-app"));
@@ -40,6 +46,23 @@ module.exports = async function registerUtilsTests({ test, assert }) {
     assert.ok(output.includes("npm test"));
     assert.ok(output.includes("npm run lint"));
     assert.ok(output.includes("src/\n  └── index.js"));
+    assert.ok(output.includes("Plan hint"));
+    assert.ok(output.includes("Review hint"));
+    assert.ok(output.includes("Commit hint"));
+  });
+
+  test("fillTemplate lets templateVariables override built-in placeholders", () => {
+    const output = fillTemplate("{{PROJECT_NAME}} {{PLAN_WORKFLOW_GUIDANCE}}", {
+      projectName: "ignored",
+      planWorkflowGuidance: "from-context",
+      templateVariables: {
+        PROJECT_NAME: "from-var",
+        PLAN_WORKFLOW_GUIDANCE: "override-hint",
+      },
+    });
+
+    assert.ok(output.includes("from-var"));
+    assert.ok(output.includes("override-hint"));
   });
 
   test("fillTemplate uses fallback text for empty extras", () => {
@@ -65,6 +88,7 @@ module.exports = async function registerUtilsTests({ test, assert }) {
       path.join(templatesRoot, "cursor", "AGENTS.md"),
       path.join(templatesRoot, "windsurf", "AGENTS.md"),
       path.join(templatesRoot, "claude-code", "AGENTS.md"),
+      path.join(templatesRoot, "cline", ".clinerules", "workflows", "plan.md"),
     ];
 
     for (const filePath of filePaths) {
@@ -80,6 +104,9 @@ module.exports = async function registerUtilsTests({ test, assert }) {
         testCommand: "npm test",
         lintCommand: "npm run lint",
         projectStructure: "src/\n  └── index.js",
+        planWorkflowGuidance: "",
+        reviewWorkflowGuidance: "",
+        commitWorkflowGuidance: "",
       });
 
       assert.strictEqual(

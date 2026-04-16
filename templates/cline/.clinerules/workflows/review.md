@@ -46,3 +46,9 @@ Self-review all uncommitted changes before committing. Catch bugs, forgotten edg
 - Don't refactor working code that wasn't part of the change
 - Focus on the diff, not the entire codebase
 - If unsure whether something is a bug, flag it as a question rather than silently ignoring
+
+---
+
+## Project-specific guidance (optional)
+
+{{REVIEW_WORKFLOW_GUIDANCE}}
