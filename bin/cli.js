@@ -117,10 +117,10 @@ program
   .option("-d, --dir <path>", "Target directory", ".")
   .option("-p, --provider <name>", providerHelpText, DEFAULT_PROVIDER)
   .action(
-    runCommand((provider, options) => {
+    runCommand(async (provider, options) => {
       if (provider) options.provider = provider;
       const { checkStatus } = require("../src/status");
-      checkStatus(options);
+      await checkStatus(options);
     }),
   );
 
