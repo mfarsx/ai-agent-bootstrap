@@ -1,16 +1,20 @@
 # ai-agent-bootstrap
 
-Bootstrap AI-agent-ready project context with a single command.
+[![npm version](https://img.shields.io/npm/v/ai-agent-bootstrap)](https://www.npmjs.com/package/ai-agent-bootstrap)
+[![node](https://img.shields.io/badge/node-%3E%3D16-brightgreen)](https://nodejs.org/)
+[![license](https://img.shields.io/npm/l/ai-agent-bootstrap)](./LICENSE)
 
-Scaffolds provider-specific memory, rules, workflows, and boundaries for **Cline**, **Cursor**, **OpenClaw**, **Windsurf**, and **Claude Code**.
+Set up AI-agent project context in minutes, not hours.
 
-## Quick Start
+`ai-agent-bootstrap` scaffolds memory, rules, workflows, and boundaries for Cline, Cursor, OpenClaw, Windsurf, and Claude Code.
+
+## Start In 10 Seconds
 
 ```bash
 npx ai-agent-bootstrap init
 ```
 
-That's it. No install needed. The CLI asks a few questions and generates everything.
+No install required. Answer a few prompts and your project is agent-ready.
 
 For repeated use:
 
@@ -19,11 +23,23 @@ npm install -g ai-agent-bootstrap
 ai-bootstrap init
 ```
 
-## What You Get
+## 30-Second Demo
 
-Running `ai-bootstrap init` creates provider-specific AI context files and updates `.gitignore`.
+![ai-agent-bootstrap init demo](docs/assets/readme/demo-init-fast.gif)
 
-For `--provider cline` (default):
+- Runs from an existing project folder.
+- Creates provider-specific context files.
+- Prints next steps so you can start the agent immediately.
+
+## Why Teams Use This
+
+- Fast onboarding for new and existing repos.
+- Consistent AI behavior through shared rules and memory files.
+- Safer defaults that avoid destructive overwrites during `init`.
+
+## What Gets Generated
+
+For `cline` (default), `init` scaffolds files like:
 
 ```text
 your-project/
@@ -40,78 +56,67 @@ your-project/
 │   ├── 02-workflow.md
 │   ├── 03-boundaries.md
 │   └── workflows/
-│       ├── init-memory.md
-│       ├── update-memory.md
-│       ├── plan.md
-│       ├── review.md
-│       ├── commit.md
-│       └── ...
 └── .clineignore
 ```
 
-After init, the CLI tells you what to do next based on your provider:
+Provider summary:
 
-- **Fresh install** &rarr; run `/init-memory` (Cline) or `@init-memory` (Cursor) to populate memory-bank
-- **Re-run with existing files** &rarr; run `/update-memory` or `@update-memory` to sync
+- `cline`: `memory-bank/`, `.clinerules/`, `.clineignore`
+- `cursor`: `memory-bank/`, `.cursor/rules/`, `AGENTS.md`
+- `openclaw`: `memory-bank/`, `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`
+- `windsurf`: `memory-bank/`, `.windsurf/rules/`, `AGENTS.md`
+- `claude-code`: `docs/context/`, `CLAUDE.md`, `AGENTS.md`
 
-## Providers
+## After `init`: First Success Path
 
-| Provider | Context path | Key files | Memory workflow |
-| --- | --- | --- | --- |
-| `cline` | `memory-bank/` | `.clinerules/`, `.clineignore` | `/init-memory`, `/update-memory` |
-| `cursor` | `memory-bank/` | `.cursor/rules/`, `AGENTS.md` | `@init-memory`, `@update-memory` |
-| `openclaw` | `memory-bank/` | `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md` | manual |
-| `windsurf` | `memory-bank/` | `.windsurf/rules/`, `AGENTS.md` | manual |
-| `claude-code` | `docs/context/` | `CLAUDE.md`, `AGENTS.md` | `/update-memory` |
+- Fresh install:
+  - Cline: run `/init-memory`
+  - Cursor: run `@init-memory`
+- Existing project re-run:
+  - Cline/Cursor: run `/update-memory` or `@update-memory`
+- Other providers: fill and maintain generated context files manually.
 
 ## Commands
 
 ### `init`
 
-Scaffold AI agent files into a project.
+Scaffold AI files into a project.
 
 ```bash
-ai-bootstrap init                  # Interactive
-ai-bootstrap init -y               # Skip prompts, use defaults
-ai-bootstrap init -p cursor        # Use a specific provider
-ai-bootstrap init -d ./myapp       # Target a different directory
-ai-bootstrap init --dry-run        # Preview without writing
+ai-bootstrap init
+ai-bootstrap init -y
+ai-bootstrap init -p cursor
+ai-bootstrap init -d ./myapp
+ai-bootstrap init --dry-run
+ai-bootstrap init --config ./bootstrap.config.json
+ai-bootstrap init --var OWNER_NAME=platform-team --var BUILD_COMMAND="npm run build"
 ```
 
 ### `status`
 
-Check which AI agent files exist in a project.
+Check which expected files exist.
 
 ```bash
 ai-bootstrap status
 ai-bootstrap status -p cursor
+ai-bootstrap status -d ./myapp
 ```
 
 ### `reset`
 
-Re-generate scaffold files from templates. Shows a diff and asks for confirmation before overwriting.
+Re-render provider files from templates. Shows a diff and confirms before writing.
 
 ```bash
-ai-bootstrap reset                 # Interactive diff + confirm
-ai-bootstrap reset --dry-run       # Preview diff only
-ai-bootstrap reset -y              # Skip confirmation
-ai-bootstrap reset -p cursor       # Reset a specific provider
+ai-bootstrap reset
+ai-bootstrap reset --dry-run
+ai-bootstrap reset -y
+ai-bootstrap reset -p cursor
+ai-bootstrap reset --config ./bootstrap.config.json
 ```
-
-### Common Options
-
-| Option | Available on | Description |
-| --- | --- | --- |
-| `-p, --provider <name>` | all | Provider (cline, cursor, openclaw, windsurf, claude-code) |
-| `-d, --dir <path>` | all | Target directory (default: `.`) |
-| `-y, --yes` | init, reset | Skip prompts |
-| `--dry-run` | init, reset | Preview changes without writing |
-| `--config <path>` | init, reset | Path to JSON config file |
-| `--var KEY=VALUE` | init | Template variable override (repeatable) |
 
 ## Config File
 
-Drop a `bootstrap.config.json` in your project root (auto-discovered) or pass `--config`:
+Create `bootstrap.config.json` in your project root (auto-discovered) or pass it via `--config`:
 
 ```json
 {
@@ -127,26 +132,39 @@ Drop a `bootstrap.config.json` in your project root (auto-discovered) or pass `-
 }
 ```
 
-Precedence: defaults < prompt answers < config file < `--var` CLI flags.
+Variable precedence:
 
-## Safe by Default
+`defaults < prompt answers < config file < --var flags`
 
-- `init` never overwrites existing files (skip-existing by design).
-- `reset` shows a diff and asks for confirmation before writing.
-- `.gitignore` is merged non-destructively: only missing entries are appended.
+## Safe By Default
 
-## Why This Exists
+- `init` skips existing files (non-destructive).
+- `reset` prints a diff before writing changes.
+- `.gitignore` entries are merged by appending only missing lines.
 
-AI coding agents work best with explicit context. Without it, they guess wrong.
+## FAQ
 
-This tool gives your agent:
+### Will this overwrite my existing files?
 
-- **Memory** -- persistent project context across sessions
-- **Standards** -- coding rules and conventions
-- **Workflow** -- plan-first execution with built-in commands
-- **Boundaries** -- hard limits requiring human approval
+`init` will not. It skips files that already exist.
 
-Set it up once, then start every session with context.
+### Can I preview changes first?
+
+Yes. Use `--dry-run` with `init` or `reset`.
+
+### Can I use this on an existing project?
+
+Yes. It is designed for both new and active repositories.
+
+## Start Now
+
+Run:
+
+```bash
+npx ai-agent-bootstrap init
+```
+
+If this saves your team time, open an issue or PR to help improve provider templates.
 
 ## License
 
