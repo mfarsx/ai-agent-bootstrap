@@ -1,6 +1,7 @@
 /**
  * Replace template placeholders with actual values.
  * Placeholders use {{KEY}} syntax.
+ * `data.templateVariables` overrides built-in keys (e.g. from --var or config).
  */
 function fillTemplate(content, data) {
   const builtInValues = {
@@ -14,15 +15,17 @@ function fillTemplate(content, data) {
     TEST_COMMAND: data.testCommand || "",
     LINT_COMMAND: data.lintCommand || "",
     PROJECT_STRUCTURE: data.projectStructure || "",
+    PLAN_WORKFLOW_GUIDANCE: data.planWorkflowGuidance || "",
+    REVIEW_WORKFLOW_GUIDANCE: data.reviewWorkflowGuidance || "",
+    COMMIT_WORKFLOW_GUIDANCE: data.commitWorkflowGuidance || "",
   };
 
-  let output = replaceTokens(content, builtInValues);
+  const merged = {
+    ...builtInValues,
+    ...(data.templateVariables || {}),
+  };
 
-  if (data.templateVariables) {
-    output = replaceTokens(output, data.templateVariables);
-  }
-
-  return output;
+  return replaceTokens(content, merged);
 }
 
 function formatExtras(extras) {

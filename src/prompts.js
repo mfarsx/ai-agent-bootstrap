@@ -162,6 +162,9 @@ function getDefaults(targetDir) {
     testCommand: commands.testCommand,
     lintCommand: commands.lintCommand,
     projectStructure: "src/\n  ├── index.js\n  └── ...",
+    planWorkflowGuidance: "",
+    reviewWorkflowGuidance: "",
+    commitWorkflowGuidance: "",
   };
 }
 

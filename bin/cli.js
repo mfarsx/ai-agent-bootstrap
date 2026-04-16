@@ -64,6 +64,9 @@ function classifyError(error) {
   if (/EACCES|EPERM/i.test(error.message) || /permission denied/i.test(error.message)) {
     return "permission denied";
   }
+  if (error.code === "RESET_CONFIRM_NEEDS_YES") {
+    return "reset error";
+  }
 
   return "runtime error";
 }
@@ -92,6 +95,7 @@ program
   .option("-d, --dir <path>", "Target directory", ".")
   .option("-p, --provider <name>", providerHelpText, "cline")
   .option("-y, --yes", "Skip prompts and use defaults")
+  .option("--dry-run", "List files that would be created without writing")
   .option("--config <path>", "Path to JSON config file")
   .option(
     "--var <key=value>",
@@ -115,6 +119,27 @@ program
     runCommand((options) => {
       const { checkStatus } = require("../src/status");
       checkStatus(options);
+    }),
+  );
+
+program
+  .command("reset")
+  .description("Reset provider files from templates (writes by default)")
+  .option("-d, --dir <path>", "Target directory", ".")
+  .option("-p, --provider <name>", providerHelpText, "cline")
+  .option("-y, --yes", "Skip confirmation prompt")
+  .option("--dry-run", "Preview diff without writing")
+  .option("--config <path>", "Path to JSON config file")
+  .option(
+    "--var <key=value>",
+    "Template variable override (repeatable)",
+    collectTemplateVariable,
+    [],
+  )
+  .action(
+    runCommand(async (options) => {
+      const { resetProject } = require("../src/reset");
+      await resetProject(options);
     }),
   );
 

@@ -5,8 +5,23 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+const DEFAULT_CONFIG_FILENAME = "bootstrap.config.json";
+
+async function resolveInitConfigPath(targetDir, explicitPath) {
+  if (explicitPath) {
+    return path.resolve(explicitPath);
+  }
+
+  const autoPath = path.join(targetDir, DEFAULT_CONFIG_FILENAME);
+  if (await fs.pathExists(autoPath)) {
+    return autoPath;
+  }
+
+  return null;
+}
+
 async function loadInitConfig(configPath) {
-  if (!configPath) {
+  if (configPath == null || configPath === "") {
     return {
       context: {},
       templateVariables: {},
@@ -65,5 +80,7 @@ async function loadInitConfig(configPath) {
 }
 
 module.exports = {
+  DEFAULT_CONFIG_FILENAME,
   loadInitConfig,
+  resolveInitConfigPath,
 };

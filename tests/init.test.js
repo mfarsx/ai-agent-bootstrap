@@ -61,6 +61,19 @@ const WINDSURF_SENTINEL_FILES = [
 ];
 
 module.exports = async function registerInitTests({ test, assert }) {
+  test("initProject dryRun does not create files", async () => {
+    await withTempDir("ai-bootstrap-dry-run-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, dryRun: true }),
+      );
+
+      assert.strictEqual(
+        await fs.pathExists(path.join(targetDir, "memory-bank", "projectbrief.md")),
+        false,
+      );
+    });
+  });
+
   test("initProject creates all baseline files in a fresh target", async () => {
     await withTempDir("ai-bootstrap-init-", async (targetDir) => {
       await captureConsole(() => initProject({ dir: targetDir, yes: true }));
@@ -239,21 +252,23 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject propagates permissions-related filesystem errors", async () => {
-    const originalEnsureDir = fs.ensureDir;
-    fs.ensureDir = async () => {
-      const error = new Error("EACCES: permission denied");
-      error.code = "EACCES";
-      throw error;
-    };
+    await withTempDir("ai-bootstrap-eacces-", async (targetDir) => {
+      const originalEnsureDir = fs.ensureDir;
+      fs.ensureDir = async () => {
+        const error = new Error("EACCES: permission denied");
+        error.code = "EACCES";
+        throw error;
+      };
 
-    try {
-      await assert.rejects(
-        () => initProject({ dir: ".", yes: true }),
-        /EACCES: permission denied/,
-      );
-    } finally {
-      fs.ensureDir = originalEnsureDir;
-    }
+      try {
+        await assert.rejects(
+          () => initProject({ dir: targetDir, yes: true }),
+          /EACCES: permission denied/,
+        );
+      } finally {
+        fs.ensureDir = originalEnsureDir;
+      }
+    });
   });
 
   test("initProject fails fast when ready provider template sources are invalid", async () => {
@@ -307,6 +322,19 @@ module.exports = async function registerInitTests({ test, assert }) {
       assert.ok(content.includes("npm install"));
       assert.ok(content.includes("npm run dev"));
       assert.ok(content.includes("npm test"));
+    });
+  });
+
+  test("initProject prints provider-specific memory-bank prompt in next steps", async () => {
+    await withTempDir("ai-bootstrap-next-steps-prompt-", async (targetDir) => {
+      const output = await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "cursor" }),
+      );
+
+      const text = output.logs.join("\n");
+      assert.ok(
+        text.includes('In Cursor chat/interface, run: plan>"prompt for init memory-bank"'),
+      );
     });
   });
 
@@ -373,6 +401,27 @@ module.exports = async function registerInitTests({ test, assert }) {
       assert.deepStrictEqual(answers.templateVariables, {
         OWNER_NAME: "third",
       });
+    });
+  });
+
+  test("collectInitData auto-loads bootstrap.config.json from target directory", async () => {
+    await withTempDir("ai-bootstrap-config-autoload-", async (targetDir) => {
+      await fs.writeFile(
+        path.join(targetDir, "bootstrap.config.json"),
+        JSON.stringify({
+          context: {
+            provider: "cursor",
+          },
+        }),
+        "utf-8",
+      );
+
+      const { provider } = await collectInitData(targetDir, {
+        yes: true,
+        provider: "cline",
+      });
+
+      assert.strictEqual(provider.name, "cursor");
     });
   });
 

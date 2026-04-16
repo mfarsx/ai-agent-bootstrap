@@ -60,3 +60,9 @@ Create a concrete implementation plan before writing any code. Prevents the agen
 - If the task is small and obvious (fix a typo, change a color), skip the plan and just do it
 - If the user says "just do it" — respect that, switch to act mode
 - Keep the plan under 20 lines — this is a map, not a novel
+
+---
+
+## Project-specific guidance (optional)
+
+{{PLAN_WORKFLOW_GUIDANCE}}

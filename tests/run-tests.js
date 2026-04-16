@@ -5,6 +5,7 @@ const suites = [
   require("./template-context.test"),
   require("./utils.test"),
   require("./init.test"),
+  require("./update.test"),
   require("./status.test"),
   require("./cli.test"),
 ];

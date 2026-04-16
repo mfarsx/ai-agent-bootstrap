@@ -138,6 +138,53 @@ module.exports = async function registerCliTests({ test, assert }) {
     });
   });
 
+  test("cli init --dry-run does not write files", async () => {
+    await withTempDir("ai-bootstrap-cli-dry-run-", async (targetDir) => {
+      const result = await runCli(
+        ["init", "--provider", "cline", "--yes", "--dry-run", "--dir", targetDir],
+        { cwd: targetDir },
+      );
+
+      assert.strictEqual(result.code, 0);
+      assert.ok(result.stdout.includes("Dry run"));
+      assert.ok(result.stdout.includes("would be created") || result.stdout.includes("would create"));
+
+      assert.strictEqual(
+        await fs.pathExists(path.join(targetDir, "memory-bank")),
+        false,
+      );
+    });
+  });
+
+  test("cli init auto-discovers bootstrap.config.json in target dir without --config", async () => {
+    await withTempDir("ai-bootstrap-cli-config-autodetect-", async (targetDir) => {
+      await fs.writeFile(
+        path.join(targetDir, "bootstrap.config.json"),
+        JSON.stringify(
+          {
+            context: {
+              provider: "cursor",
+            },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+
+      const result = await runCli(
+        ["init", "--provider", "cline", "--yes", "--dir", targetDir],
+        { cwd: targetDir },
+      );
+
+      assert.strictEqual(result.code, 0);
+      assert.strictEqual(
+        await fs.pathExists(path.join(targetDir, ".cursor", "index.mdc")),
+        true,
+      );
+    });
+  });
+
   test("cli init accepts --config and applies provider context", async () => {
     await withTempDir("ai-bootstrap-cli-config-", async (targetDir) => {
       const configPath = path.join(targetDir, "bootstrap.config.json");

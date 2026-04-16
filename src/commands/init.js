@@ -2,9 +2,9 @@ const path = require("path");
 const chalk = require("chalk");
 const { askQuestions, getDefaults } = require("../prompts");
 const { assertProviderReady } = require("../providers");
-const { mergeGitignoreEntries } = require("../gitignore");
+const { mergeGitignoreEntries, previewGitignoreMerge } = require("../gitignore");
 const { scaffoldProviderFiles } = require("../core/scaffold");
-const { loadInitConfig } = require("../core/config");
+const { loadInitConfig, resolveInitConfigPath } = require("../core/config");
 const { buildTemplateContext, mergeTemplateVariables } = require("../core/template-context");
 
 function printHeader(targetDir) {
@@ -23,6 +23,17 @@ function printFileResults(fileResults) {
   }
 }
 
+function printDryRunFileResults(fileResults) {
+  for (const entry of fileResults) {
+    if (entry.status === "would_create") {
+      console.log(chalk.cyan(`  ◆  ${entry.target} (would create)`));
+      continue;
+    }
+
+    console.log(chalk.yellow(`  ⏭  ${entry.target} (already exists)`));
+  }
+}
+
 function printGitignoreResult(gitignoreResult) {
   if (gitignoreResult.added > 0) {
     console.log(
@@ -34,23 +45,43 @@ function printGitignoreResult(gitignoreResult) {
   console.log(chalk.yellow("  ⏭  .gitignore (already up to date)"));
 }
 
-function printNextSteps(provider) {
-  console.log(chalk.gray("Next steps:"));
-  console.log(
-    chalk.gray(`  1. Fill in the ${provider.contextPath} files with your project details`),
-  );
-  if (provider.rulesPath) {
+function printDryRunGitignoreResult(gitignoreResult) {
+  if (gitignoreResult.added > 0) {
     console.log(
-      chalk.gray(`  2. Review ${provider.rulesPath} and adjust to your workflow`),
+      chalk.cyan(
+        `  ◆  .gitignore (${gitignoreResult.added} entries would be added)`,
+      ),
     );
+    return;
   }
-  console.log(
-    chalk.gray("  3. Start your AI agent — it will read these files automatically\n"),
+
+  console.log(chalk.yellow("  ⏭  .gitignore (already up to date)"));
+}
+
+function printNextSteps(provider) {
+  const steps = [
+    `Fill in the ${provider.contextPath} files with your project details`,
+  ];
+
+  if (provider.rulesPath) {
+    steps.push(`Review ${provider.rulesPath} and adjust to your workflow`);
+  }
+
+  steps.push(
+    `In ${provider.label} chat/interface, run: plan>"prompt for init memory-bank"`,
   );
+  steps.push("Start your AI agent — it will read these files automatically");
+
+  console.log(chalk.gray("Next steps:"));
+  steps.forEach((step, index) => {
+    console.log(chalk.gray(`  ${index + 1}. ${step}`));
+  });
+  console.log();
 }
 
 async function collectInitData(targetDir, options) {
-  const loadedConfig = await loadInitConfig(options.config);
+  const configPath = await resolveInitConfigPath(targetDir, options.config);
+  const loadedConfig = await loadInitConfig(configPath);
   const selectedProvider = assertProviderReady(options.provider || "cline", {
     checkTemplateSources: true,
   });
@@ -58,7 +89,8 @@ async function collectInitData(targetDir, options) {
     ...getDefaults(targetDir),
     provider: selectedProvider.name,
   };
-  const promptContext = options.yes
+  const usePromptDefaults = Boolean(options.yes) || !process.stdin.isTTY;
+  const promptContext = usePromptDefaults
     ? defaultContext
     : await askQuestions(targetDir, defaultContext);
 
@@ -92,17 +124,42 @@ async function collectInitData(targetDir, options) {
 
 async function initProject(options = {}) {
   const targetDir = path.resolve(options.dir || ".");
+  const dryRun = Boolean(options.dryRun);
   printHeader(targetDir);
 
-  const { provider, answers } = await collectInitData(targetDir, options);
-  const scaffoldResult = await scaffoldProviderFiles(targetDir, provider, answers);
-  printFileResults(scaffoldResult.fileResults);
+  if (dryRun) {
+    console.log(chalk.gray("Dry run — no files will be written.\n"));
+  }
 
-  const gitignoreResult = await mergeGitignoreEntries(
-    targetDir,
-    provider.gitignoreEntries,
-  );
-  printGitignoreResult(gitignoreResult);
+  const { provider, answers } = await collectInitData(targetDir, options);
+  const scaffoldResult = await scaffoldProviderFiles(targetDir, provider, answers, {
+    dryRun,
+  });
+
+  if (dryRun) {
+    printDryRunFileResults(scaffoldResult.fileResults);
+  } else {
+    printFileResults(scaffoldResult.fileResults);
+  }
+
+  const gitignoreResult = dryRun
+    ? await previewGitignoreMerge(targetDir, provider.gitignoreEntries)
+    : await mergeGitignoreEntries(targetDir, provider.gitignoreEntries);
+
+  if (dryRun) {
+    printDryRunGitignoreResult(gitignoreResult);
+  } else {
+    printGitignoreResult(gitignoreResult);
+  }
+
+  if (dryRun) {
+    console.log(
+      chalk.cyan(
+        `\n✨ Dry run: ${scaffoldResult.wouldCreate} files would be created, ${scaffoldResult.skipped} skipped.\n`,
+      ),
+    );
+    return;
+  }
 
   console.log(
     chalk.cyan(
