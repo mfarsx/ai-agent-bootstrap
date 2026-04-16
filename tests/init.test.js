@@ -333,7 +333,8 @@ module.exports = async function registerInitTests({ test, assert }) {
 
       const text = output.logs.join("\n");
       assert.ok(
-        text.includes('In Cursor chat/interface, run: plan>"prompt for init memory-bank"'),
+        text.includes("@init-memory") && text.includes("in Cursor chat"),
+        "fresh cursor init should suggest @init-memory",
       );
     });
   });
