@@ -1,5 +1,6 @@
+const path = require("path");
 const inquirer = require("inquirer");
-const { getProviderPromptChoices } = require("./providers");
+const { DEFAULT_PROVIDER, getProviderPromptChoices } = require("./providers");
 
 const STACK_COMMAND_DEFAULTS = {
   "Node.js": {
@@ -63,7 +64,7 @@ function getQuestions(targetDir, defaults = {}) {
       name: "projectName",
       message: "Project name:",
       default: () =>
-        defaults.projectName || require("path").basename(targetDir),
+        defaults.projectName || path.basename(targetDir),
     },
     {
       type: "input",
@@ -76,7 +77,7 @@ function getQuestions(targetDir, defaults = {}) {
       name: "provider",
       message: "AI interface/provider:",
       choices: getProviderPromptChoices(),
-      default: defaults.provider || "cline",
+      default: defaults.provider || DEFAULT_PROVIDER,
     },
     {
       type: "list",
@@ -147,13 +148,12 @@ async function askQuestions(targetDir, defaults = {}) {
 }
 
 function getDefaults(targetDir) {
-  const path = require("path");
   const commands = getCommandDefaults("Node.js");
 
   return {
     projectName: path.basename(targetDir),
     projectDescription: "",
-    provider: "cline",
+    provider: DEFAULT_PROVIDER,
     stack: "Node.js",
     extras: [],
     targetAudience: "",

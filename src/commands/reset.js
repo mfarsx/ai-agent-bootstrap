@@ -6,11 +6,7 @@ const inquirer = require("inquirer");
 const { collectInitData } = require("./init");
 const { buildProviderRenderPlan } = require("../core/scaffold");
 const { getGitignoreMergePlan, mergeGitignoreEntries } = require("../gitignore");
-
-function printHeader(targetDir) {
-  console.log(chalk.cyan("\n🤖 AI Agent Bootstrap — reset\n"));
-  console.log(chalk.gray(`Target: ${targetDir}\n`));
-}
+const { printHeader } = require("./ui");
 
 function assertConfirmableOrYes(yes) {
   if (yes || process.stdin.isTTY) {
@@ -83,7 +79,7 @@ async function resetProject(options = {}) {
   const dryRun = Boolean(options.dryRun);
   const yes = Boolean(options.yes);
 
-  printHeader(targetDir);
+  printHeader(targetDir, "reset");
 
   const { provider, answers } = await collectInitData(targetDir, options);
   const planItems = await buildProviderRenderPlan(targetDir, provider, answers);

@@ -14,8 +14,15 @@ Sync the `memory-bank/` files with the current state of the project. Use this af
 ## Steps
 
 1. **Read all current memory-bank files**
-   - Read every file in `memory-bank/` before changing anything
-   - Note what is outdated, missing, or incorrect in each file
+   - Call read_file on each path explicitly, in this order:
+     - memory-bank/activeContext.md
+     - memory-bank/productContext.md
+     - memory-bank/progress.md
+     - memory-bank/projectbrief.md
+     - memory-bank/systemPatterns.md
+     - memory-bank/techContext.md
+   - Do NOT proceed to Step 2 until all 6 files have been read.
+   - If any file is missing, note it and continue.
 
 2. **Review what changed**
    - Ask the user: "What changed since the last update?" if context is unclear

@@ -3,41 +3,7 @@ const fs = require("fs-extra");
 const { resolveTemplatePath } = require("../providers");
 const { renderTemplateFile } = require("./template");
 
-async function scaffoldProviderFiles(targetDir, provider, data, options = {}) {
-  const dryRun = Boolean(options.dryRun);
-  let created = 0;
-  let wouldCreate = 0;
-  let skipped = 0;
-  const fileResults = [];
-
-  for (const file of provider.files) {
-    const targetFile = path.join(targetDir, file.target);
-    const templateFile = resolveTemplatePath(provider, file);
-
-    if (await fs.pathExists(targetFile)) {
-      skipped++;
-      fileResults.push({ target: file.target, status: "skipped" });
-      continue;
-    }
-
-    const content = await renderTemplateFile(templateFile, data);
-
-    if (dryRun) {
-      wouldCreate++;
-      fileResults.push({ target: file.target, status: "would_create" });
-      continue;
-    }
-
-    await fs.ensureDir(path.dirname(targetFile));
-    await fs.writeFile(targetFile, content, "utf-8");
-    created++;
-    fileResults.push({ target: file.target, status: "created" });
-  }
-
-  return { created, skipped, wouldCreate, dryRun, fileResults };
-}
-
-async function buildProviderRenderPlan(targetDir, provider, data) {
+async function resolveFileItems(targetDir, provider, data) {
   const items = [];
 
   for (const file of provider.files) {
@@ -57,6 +23,40 @@ async function buildProviderRenderPlan(targetDir, provider, data) {
   }
 
   return items;
+}
+
+async function scaffoldProviderFiles(targetDir, provider, data, options = {}) {
+  const dryRun = Boolean(options.dryRun);
+  const items = await resolveFileItems(targetDir, provider, data);
+  let created = 0;
+  let wouldCreate = 0;
+  let skipped = 0;
+  const fileResults = [];
+
+  for (const item of items) {
+    if (item.exists) {
+      skipped++;
+      fileResults.push({ target: item.target, status: "skipped" });
+      continue;
+    }
+
+    if (dryRun) {
+      wouldCreate++;
+      fileResults.push({ target: item.target, status: "would_create" });
+      continue;
+    }
+
+    await fs.ensureDir(path.dirname(item.targetFile));
+    await fs.writeFile(item.targetFile, item.rendered, "utf-8");
+    created++;
+    fileResults.push({ target: item.target, status: "created" });
+  }
+
+  return { created, skipped, wouldCreate, dryRun, fileResults };
+}
+
+async function buildProviderRenderPlan(targetDir, provider, data) {
+  return resolveFileItems(targetDir, provider, data);
 }
 
 module.exports = {

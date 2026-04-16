@@ -10,7 +10,7 @@ const MEMORY_BANK_FILES = [
   "progress.md",
 ];
 
-const CLINE_RULE_FILES = [
+const SHARED_RULE_FILES = [
   "00-memory-bank.md",
   "01-coding-standards.md",
   "02-workflow.md",
@@ -24,22 +24,30 @@ const CURSOR_RULE_FILES = [
   "03-boundaries.mdc",
 ];
 
+const CURSOR_WORKFLOW_FILES = [
+  "checkpoint.mdc",
+  "cleanup.mdc",
+  "commit.mdc",
+  "init-memory.mdc",
+  "plan.mdc",
+  "review.mdc",
+  "status.mdc",
+  "stuck.mdc",
+  "update-memory.mdc",
+];
+
 const CLINE_WORKFLOW_FILES = [
   "checkpoint.md",
   "cleanup.md",
   "commit.md",
+  "init-memory.md",
   "plan.md",
   "review.md",
   "status.md",
   "stuck.md",
+  "update-memory.md",
 ];
 
-const WINDSURF_RULE_FILES = [
-  "00-memory-bank.md",
-  "01-coding-standards.md",
-  "02-workflow.md",
-  "03-boundaries.md",
-];
 
 function createMemoryBankFiles() {
   return MEMORY_BANK_FILES.map((file) => ({
@@ -55,7 +63,7 @@ function createGitignoreEntries(files) {
 
 const CLINE_FILES = [
   ...createMemoryBankFiles(),
-  ...CLINE_RULE_FILES.map((file) => ({
+  ...SHARED_RULE_FILES.map((file) => ({
     source: `.clinerules/${file}`,
     target: `.clinerules/${file}`,
   })),
@@ -74,6 +82,10 @@ const CURSOR_FILES = [
     source: `.cursor/rules/${file}`,
     target: `.cursor/rules/${file}`,
   })),
+  ...CURSOR_WORKFLOW_FILES.map((file) => ({
+    source: `.cursor/workflows/${file}`,
+    target: `.cursor/workflows/${file}`,
+  })),
 ];
 
 const OPENCLAW_FILES = [
@@ -87,7 +99,7 @@ const OPENCLAW_FILES = [
 const WINDSURF_FILES = [
   ...createMemoryBankFiles(),
   { source: "AGENTS.md", target: "AGENTS.md" },
-  ...WINDSURF_RULE_FILES.map((file) => ({
+  ...SHARED_RULE_FILES.map((file) => ({
     source: `.windsurf/rules/${file}`,
     target: `.windsurf/rules/${file}`,
   })),
@@ -115,6 +127,10 @@ const PROVIDERS = {
     rulesPath: ".clinerules",
     files: CLINE_FILES,
     gitignoreEntries: createGitignoreEntries(CLINE_FILES),
+    workflows: {
+      initMemory: { command: "/init-memory", hint: "in Cline chat" },
+      updateMemory: { command: "/update-memory", hint: "in Cline chat" },
+    },
   },
   cursor: {
     label: "Cursor",
@@ -124,6 +140,10 @@ const PROVIDERS = {
     rulesPath: ".cursor/rules",
     files: CURSOR_FILES,
     gitignoreEntries: createGitignoreEntries(CURSOR_FILES),
+    workflows: {
+      initMemory: { command: "@init-memory", hint: "in Cursor chat" },
+      updateMemory: { command: "@update-memory", hint: "in Cursor chat" },
+    },
   },
   openclaw: {
     label: "OpenClaw",
@@ -149,8 +169,13 @@ const PROVIDERS = {
     contextPath: "docs/context",
     files: CLAUDE_CODE_FILES,
     gitignoreEntries: createGitignoreEntries(CLAUDE_CODE_FILES),
+    workflows: {
+      updateMemory: { command: "/update-memory", hint: "in Claude Code" },
+    },
   },
 };
+
+const DEFAULT_PROVIDER = "cline";
 
 const TEMPLATE_ROOT = path.join(__dirname, "..", "templates");
 
@@ -277,13 +302,15 @@ function formatManifestValidationError(validation) {
 }
 
 function getProvider(name) {
-  const providerName = String(name || "cline").toLowerCase();
+  const providerName = String(name || DEFAULT_PROVIDER).toLowerCase();
   const provider = PROVIDERS[providerName];
 
   if (!provider) {
-    throw new Error(
+    const error = new Error(
       `Unknown provider \"${name}\". Use one of: ${getProviderNames().join(", ")}`,
     );
+    error.code = "UNKNOWN_PROVIDER";
+    throw error;
   }
 
   return { name: providerName, ...provider };
@@ -308,11 +335,13 @@ function getExpectedFiles(providerName) {
   const provider = getProvider(providerName);
 
   if (!provider.ready) {
-    throw new Error(
+    const error = new Error(
       `${provider.label} templates are not ready yet. Use one of: ${getReadyProviderNames().join(
         ", ",
       )}`,
     );
+    error.code = "PROVIDER_NOT_READY";
+    throw error;
   }
 
   return [...provider.files.map((file) => file.target), ".gitignore"];
@@ -322,11 +351,13 @@ function assertProviderReady(providerName, options = {}) {
   const provider = getProvider(providerName);
 
   if (!provider.ready) {
-    throw new Error(
+    const error = new Error(
       `${provider.label} templates are not ready yet. Use one of: ${getReadyProviderNames().join(
         ", ",
       )}`,
     );
+    error.code = "PROVIDER_NOT_READY";
+    throw error;
   }
 
   if (options.validateManifest || options.checkTemplateSources) {
@@ -334,7 +365,9 @@ function assertProviderReady(providerName, options = {}) {
       checkTemplateSources: options.checkTemplateSources,
     });
     if (!validation.valid) {
-      throw new Error(formatManifestValidationError(validation));
+      const error = new Error(formatManifestValidationError(validation));
+      error.code = "MISSING_TEMPLATE_SOURCE";
+      throw error;
     }
   }
 
@@ -342,6 +375,7 @@ function assertProviderReady(providerName, options = {}) {
 }
 
 module.exports = {
+  DEFAULT_PROVIDER,
   assertProviderReady,
   getProvider,
   getProviderNames,
