@@ -1,11 +1,9 @@
 ---
-description: "Sync memory-bank files with current project state"
-alwaysApply: false
+name: update-memory
+description: Sync memory-bank files with the current state of the project after a significant work session. Use when the user asks to update, refresh, or sync the memory bank, before a long break, or when the memory bank feels stale.
 ---
 
 # /update-memory
-
-Triggered when user types `/update-memory` in chat.
 
 ## Purpose
 
@@ -27,7 +25,7 @@ Sync the `memory-bank/` files with the current state of the project. Use this af
 2. **Review what changed**
    - Ask the user: "What changed since the last update?" if context is unclear
    - Or scan recent git history: `git log --oneline -10` to identify what was done
-   - Cross-reference with `activeContext.md` → Recent Changes and Next Steps
+   - Cross-reference with `activeContext.md`  Recent Changes and Next Steps
 
 3. **Update `activeContext.md`** (always update this file)
    - Current Focus: replace with what is being worked on right now
@@ -37,9 +35,9 @@ Sync the `memory-bank/` files with the current state of the project. Use this af
    - Learnings & Insights: append anything discovered that is worth remembering
 
 4. **Update `progress.md`** (update if features changed)
-   - Move completed items from "What's Left" to "What Works"
+   - Move completed items from "What''s Left" to "What Works"
    - Add newly discovered issues to "Known Issues"
-   - Update "What's Left" with any new tasks uncovered during the session
+   - Update "What''s Left" with any new tasks uncovered during the session
    - Add milestone entries if a significant version or target was reached
 
 5. **Update `systemPatterns.md`** (update if architecture changed)
@@ -53,7 +51,7 @@ Sync the `memory-bank/` files with the current state of the project. Use this af
    - Add new constraints discovered
 
 7. **Update `projectbrief.md` and `productContext.md`** (update only if scope changed)
-   - These are stable by design — only update if goals, requirements, or product direction shifted
+   - These are stable by design - only update if goals, requirements, or product direction shifted
    - If you do update them, be explicit with the user about what changed and why
 
 8. **Confirm to user**
@@ -62,16 +60,16 @@ Sync the `memory-bank/` files with the current state of the project. Use this af
    - Format:
      ```
      Memory bank updated:
-     ✔ activeContext.md — focus shifted to auth flow; next steps updated
-     ✔ progress.md — login feature moved to "What Works"; 2 new issues added
-     ↷ systemPatterns.md — no changes needed
-     ↷ projectbrief.md — no changes needed
+     ? activeContext.md - focus shifted to auth flow; next steps updated
+     ? progress.md - login feature moved to "What Works"; 2 new issues added
+     ? systemPatterns.md - no changes needed
+     ? projectbrief.md - no changes needed
      ```
 
 ## Rules
 
-- Always append or update — never delete existing content without a clear reason
-- Keep each file under 2 pages — summarize rather than transcribe
+- Always append or update - never delete existing content without a clear reason
+- Keep each file under 2 pages - summarize rather than transcribe
 - Do not modify any files outside `memory-bank/`
 - If unsure whether something belongs in memory bank, add it and flag it: "(to review)"
-- This is a sync operation, not a rewrite — preserve the user's voice and past decisions
+- This is a sync operation, not a rewrite - preserve the user''s voice and past decisions

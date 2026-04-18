@@ -24,16 +24,16 @@ const CURSOR_RULE_FILES = [
   "03-boundaries.mdc",
 ];
 
-const CURSOR_WORKFLOW_FILES = [
-  "checkpoint.mdc",
-  "cleanup.mdc",
-  "commit.mdc",
-  "init-memory.mdc",
-  "plan.mdc",
-  "review.mdc",
-  "status.mdc",
-  "stuck.mdc",
-  "update-memory.mdc",
+const CURSOR_SKILL_NAMES = [
+  "checkpoint",
+  "cleanup",
+  "commit",
+  "init-memory",
+  "plan",
+  "review",
+  "status",
+  "stuck",
+  "update-memory",
 ];
 
 const CLINE_WORKFLOW_FILES = [
@@ -46,6 +46,18 @@ const CLINE_WORKFLOW_FILES = [
   "status.md",
   "stuck.md",
   "update-memory.md",
+];
+
+const WORKFLOW_SLUGS = [
+  "checkpoint",
+  "cleanup",
+  "commit",
+  "init-memory",
+  "plan",
+  "review",
+  "status",
+  "stuck",
+  "update-memory",
 ];
 
 
@@ -63,6 +75,7 @@ function createGitignoreEntries(files) {
 
 const CLINE_FILES = [
   ...createMemoryBankFiles(),
+  { source: "AGENTS.md", target: "AGENTS.md" },
   ...SHARED_RULE_FILES.map((file) => ({
     source: `.clinerules/${file}`,
     target: `.clinerules/${file}`,
@@ -82,10 +95,11 @@ const CURSOR_FILES = [
     source: `.cursor/rules/${file}`,
     target: `.cursor/rules/${file}`,
   })),
-  ...CURSOR_WORKFLOW_FILES.map((file) => ({
-    source: `.cursor/workflows/${file}`,
-    target: `.cursor/workflows/${file}`,
+  ...CURSOR_SKILL_NAMES.map((slug) => ({
+    source: `.cursor/skills/${slug}/SKILL.md`,
+    target: `.cursor/skills/${slug}/SKILL.md`,
   })),
+  { source: ".cursorignore", target: ".cursorignore" },
 ];
 
 const OPENCLAW_FILES = [
@@ -103,15 +117,20 @@ const WINDSURF_FILES = [
     source: `.windsurf/rules/${file}`,
     target: `.windsurf/rules/${file}`,
   })),
+  ...WORKFLOW_SLUGS.map((slug) => ({
+    source: `.windsurf/workflows/${slug}.md`,
+    target: `.windsurf/workflows/${slug}.md`,
+  })),
+  { source: ".windsurfignore", target: ".windsurfignore" },
 ];
 
 const CLAUDE_CODE_FILES = [
   { source: "AGENTS.md", target: "AGENTS.md" },
   { source: "CLAUDE.md", target: "CLAUDE.md" },
-  {
-    source: ".claude/commands/update-memory.md",
-    target: ".claude/commands/update-memory.md",
-  },
+  ...WORKFLOW_SLUGS.map((slug) => ({
+    source: `.claude/commands/${slug}.md`,
+    target: `.claude/commands/${slug}.md`,
+  })),
   ...MEMORY_BANK_FILES.map((file) => ({
     source: `docs/context/${file}`,
     target: `docs/context/${file}`,
@@ -141,8 +160,8 @@ const PROVIDERS = {
     files: CURSOR_FILES,
     gitignoreEntries: createGitignoreEntries(CURSOR_FILES),
     workflows: {
-      initMemory: { command: "@init-memory", hint: "in Cursor chat" },
-      updateMemory: { command: "@update-memory", hint: "in Cursor chat" },
+      initMemory: { command: "/init-memory", hint: "in Cursor chat" },
+      updateMemory: { command: "/update-memory", hint: "in Cursor chat" },
     },
   },
   openclaw: {
@@ -161,6 +180,10 @@ const PROVIDERS = {
     rulesPath: ".windsurf/rules",
     files: WINDSURF_FILES,
     gitignoreEntries: createGitignoreEntries(WINDSURF_FILES),
+    workflows: {
+      initMemory: { command: "/init-memory", hint: "in Windsurf chat" },
+      updateMemory: { command: "/update-memory", hint: "in Windsurf chat" },
+    },
   },
   "claude-code": {
     label: "Claude Code",
@@ -170,6 +193,7 @@ const PROVIDERS = {
     files: CLAUDE_CODE_FILES,
     gitignoreEntries: createGitignoreEntries(CLAUDE_CODE_FILES),
     workflows: {
+      initMemory: { command: "/init-memory", hint: "in Claude Code" },
       updateMemory: { command: "/update-memory", hint: "in Claude Code" },
     },
   },

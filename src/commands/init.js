@@ -1,6 +1,6 @@
 const path = require("path");
 const chalk = require("chalk");
-const { askQuestions, getDefaults } = require("../prompts");
+const { askQuestions, getDefaults, applyStackDerivedDefaults } = require("../prompts");
 const { DEFAULT_PROVIDER, assertProviderReady } = require("../providers");
 const { mergeGitignoreEntries, previewGitignoreMerge } = require("../gitignore");
 const { scaffoldProviderFiles } = require("../core/scaffold");
@@ -76,6 +76,8 @@ async function collectInitData(targetDir, options) {
     configTemplateVariables: mergedConfigVars,
     cliTemplateVariables: options.templateVariables || {},
   });
+
+  applyStackDerivedDefaults(context);
 
   const provider = assertProviderReady(context.provider || selectedProvider.name, {
     checkTemplateSources: true,

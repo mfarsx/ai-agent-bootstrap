@@ -19,4 +19,3 @@ Non-negotiable rules. Do NOT break without explicit user approval.
 - Check if a file exists before creating a similar one
 - Prefer existing dependencies over new ones
 - Consider bundle size — focused packages over kitchen-sink libraries
-- Verify `public/` asset references exist after changes

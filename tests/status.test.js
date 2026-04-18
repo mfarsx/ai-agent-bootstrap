@@ -104,7 +104,8 @@ module.exports = async function registerStatusTests({ test, assert }) {
       const text = output.logs.join("\n");
 
       assert.ok(text.includes("Provider: Claude Code"));
-      assert.ok(text.includes("📊 1/10 files found."));
+      const claudeTotal = getExpectedFiles("claude-code").length;
+      assert.ok(text.includes(`📊 1/${claudeTotal} files found.`));
       assert.ok(text.includes(".claude/commands/update-memory.md"));
     });
   });

@@ -1,0 +1,35 @@
+---
+description: "/review workflow"
+---
+
+
+# /review - Self-Review Before Committing
+
+## Steps
+
+1. **Gather changes**: `git diff`, `git diff --cached`, `git status`
+
+2. **Review each file** for:
+   - **Bugs**: logic errors, null access, off-by-one
+   - **Junk**: `console.log`, resolved TODOs, commented-out code
+   - **Error handling**: failures, empty states
+   - **Security**: hardcoded secrets, exposed paths
+   - **Consistency**: matches existing patterns?
+
+3. **Cross-file impact**
+   - Function signature changed  all callers updated?
+   - New provider added  manifest + templates + tests in sync?
+   - `fillTemplate()` changed  all placeholders still registered?
+
+4. **Report findings**
+   - ?? Must fix - bugs, broken functionality
+   - ?? Should fix - missing edge cases, naming
+   - ?? Nitpick - style, minor improvements
+   - No issues? Say so clearly.
+
+5. **Offer to fix** ?? and ?? items - wait for approval before changing
+
+## Rules
+- Be honest - don''t say "looks good" if there are issues
+- Focus on the diff, not the entire codebase
+- Don''t refactor working code that wasn''t part of the change

@@ -1,6 +1,5 @@
 ---
-description: "Code style, error handling, git conventions"
-alwaysApply: true
+description: "Code style, error handling, git conventions - request when writing or reviewing code"
 ---
 
 # Coding Standards

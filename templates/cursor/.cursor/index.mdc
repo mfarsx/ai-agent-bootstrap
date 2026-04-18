@@ -1,0 +1,35 @@
+---
+description: "Cursor project index — map of rules, skills, and context files"
+alwaysApply: false
+---
+
+# Project Index
+
+This file is a lightweight map for the agent. Read on demand when you need to know what's available.
+
+## Always-on rules
+- `.cursor/rules/00-memory-bank.mdc` — read `memory-bank/` at every conversation start.
+- `.cursor/rules/03-boundaries.mdc` — hard constraints (never delete files, never push, etc.).
+
+## Agent-requestable rules
+- `.cursor/rules/01-coding-standards.mdc` — style, error handling, git conventions.
+- `.cursor/rules/02-workflow.mdc` — how to start, execute, and complete a task.
+
+## Skills (invoke via `/<slug>` or by description match)
+- `/init-memory` — populate `memory-bank/` for a new project.
+- `/update-memory` — sync `memory-bank/` with current state.
+- `/plan` — plan before coding on multi-file tasks.
+- `/commit` — stage + commit with pre-commit checks.
+- `/review` — self-review uncommitted changes.
+- `/checkpoint` — mid-session progress save to `memory-bank/activeContext.md`.
+- `/status` — quick health check (git, memory, tests, lint).
+- `/cleanup` — remove dead code and debug artifacts.
+- `/stuck` — structured escalation when looping on the same error.
+
+## Context files
+- `memory-bank/projectbrief.md` — requirements and goals (foundation).
+- `memory-bank/productContext.md` — why this project exists, UX goals.
+- `memory-bank/activeContext.md` — current focus, recent changes, next steps.
+- `memory-bank/systemPatterns.md` — architecture decisions.
+- `memory-bank/techContext.md` — stack, dependencies, setup.
+- `memory-bank/progress.md` — what works, what's left, known issues.

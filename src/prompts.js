@@ -57,6 +57,46 @@ function getCommandDefaults(stack) {
   return STACK_COMMAND_DEFAULTS[stack] || STACK_COMMAND_DEFAULTS.Other;
 }
 
+const STACK_PROJECT_STRUCTURES = {
+  "Node.js": "src/\n  ├── index.js\n  └── ...",
+  React: "src/\n  ├── App.jsx\n  ├── components/\n  └── ...",
+  "Next.js": "app/\n  ├── layout.tsx\n  ├── page.tsx\n  └── ...",
+  Vue: "src/\n  ├── App.vue\n  ├── components/\n  └── ...",
+  TypeScript: "src/\n  ├── index.ts\n  └── ...",
+  Python: "src/\n  ├── __init__.py\n  ├── main.py\n  └── ...",
+  Go: "cmd/\n  └── app/\n      └── main.go\ninternal/\n  └── ...",
+  Other: "<!-- Describe the project's file/folder organization -->",
+};
+
+function getProjectStructureDefault(stack) {
+  return STACK_PROJECT_STRUCTURES[stack] || STACK_PROJECT_STRUCTURES.Other;
+}
+
+function applyStackDerivedDefaults(context, { overrideStructure = false } = {}) {
+  if (!context || typeof context !== "object") return context;
+  const stack = context.stack || "Node.js";
+  const commands = getCommandDefaults(stack);
+  const nodeStructure = STACK_PROJECT_STRUCTURES["Node.js"];
+
+  if (!context.installCommand || context.installCommand === STACK_COMMAND_DEFAULTS["Node.js"].installCommand) {
+    context.installCommand = commands.installCommand;
+  }
+  if (!context.devCommand || context.devCommand === STACK_COMMAND_DEFAULTS["Node.js"].devCommand) {
+    context.devCommand = commands.devCommand;
+  }
+  if (!context.testCommand || context.testCommand === STACK_COMMAND_DEFAULTS["Node.js"].testCommand) {
+    context.testCommand = commands.testCommand;
+  }
+  if (!context.lintCommand || context.lintCommand === STACK_COMMAND_DEFAULTS["Node.js"].lintCommand) {
+    context.lintCommand = commands.lintCommand;
+  }
+  if (overrideStructure || !context.projectStructure || context.projectStructure === nodeStructure) {
+    context.projectStructure = getProjectStructureDefault(stack);
+  }
+
+  return context;
+}
+
 function getQuestions(targetDir, defaults = {}) {
   return [
     {
@@ -141,6 +181,9 @@ async function askQuestions(targetDir, defaults = {}) {
   answers.devCommand = commands.devCommand;
   answers.testCommand = commands.testCommand;
   answers.lintCommand = commands.lintCommand;
+  if (!answers.projectStructure || answers.projectStructure === STACK_PROJECT_STRUCTURES["Node.js"]) {
+    answers.projectStructure = getProjectStructureDefault(answers.stack);
+  }
 
   delete answers.stackOther;
 
@@ -161,11 +204,16 @@ function getDefaults(targetDir) {
     devCommand: commands.devCommand,
     testCommand: commands.testCommand,
     lintCommand: commands.lintCommand,
-    projectStructure: "src/\n  ├── index.js\n  └── ...",
+    projectStructure: getProjectStructureDefault("Node.js"),
     planWorkflowGuidance: "",
     reviewWorkflowGuidance: "",
     commitWorkflowGuidance: "",
   };
 }
 
-module.exports = { askQuestions, getDefaults };
+module.exports = {
+  askQuestions,
+  getDefaults,
+  getProjectStructureDefault,
+  applyStackDerivedDefaults,
+};

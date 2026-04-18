@@ -38,12 +38,27 @@
 
 ## Context Files
 
-This project maintains persistent context in `docs/context/`:
-- `projectbrief.md` — requirements and goals
-- `activeContext.md` — current state and next steps
-- `progress.md` — completed work and known issues
+This project maintains persistent context in `memory-bank/`:
+- `projectbrief.md` - requirements and goals
+- `activeContext.md` - current state and next steps
+- `progress.md` - completed work and known issues
 
 Read these before starting any task.
+
+## Rules
+
+Rules live in `.clinerules/` and are loaded automatically:
+- `00-memory-bank.md` - memory bank protocol
+- `01-coding-standards.md` - style conventions
+- `02-workflow.md` - task execution flow
+- `03-boundaries.md` - hard constraints
+
+## Workflows
+
+Slash-command workflows live in `.clinerules/workflows/`:
+- `/init-memory` - bootstrap memory bank
+- `/update-memory` - sync memory bank
+- `/plan`, `/commit`, `/review`, `/checkpoint`, `/status`, `/cleanup`, `/stuck`
 
 ## Boundaries
 

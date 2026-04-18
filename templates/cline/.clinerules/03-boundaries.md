@@ -17,4 +17,3 @@ These are hard rules. Do NOT break them without explicit user approval.
 - Always check if a file exists before creating a new one with a similar name
 - Always use the project's existing dependencies before adding new ones
 - Always keep bundle size in mind — prefer small, focused packages over kitchen-sink libraries
-- Always verify that `public/` assets referenced in code actually exist after changes

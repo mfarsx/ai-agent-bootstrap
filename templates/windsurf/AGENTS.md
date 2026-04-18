@@ -30,7 +30,7 @@
 
 ## Conventions
 
-- TypeScript strict mode
+- Follow `techContext.md` for language/tooling conventions
 - Imperative lowercase commit messages, max 72 chars
 - Branch prefixes: `feat/`, `fix/`, `chore/`
 - One logical change per commit

@@ -62,7 +62,7 @@ your-project/
 Provider summary:
 
 - `cline`: `memory-bank/`, `.clinerules/`, `.clineignore`
-- `cursor`: `memory-bank/`, `.cursor/rules/`, `AGENTS.md`
+- `cursor`: `memory-bank/`, `.cursor/rules/`, `.cursor/skills/`, `AGENTS.md`
 - `openclaw`: `memory-bank/`, `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`
 - `windsurf`: `memory-bank/`, `.windsurf/rules/`, `AGENTS.md`
 - `claude-code`: `docs/context/`, `CLAUDE.md`, `AGENTS.md`
@@ -71,10 +71,13 @@ Provider summary:
 
 - Fresh install:
   - Cline: run `/init-memory`
-  - Cursor: run `@init-memory`
+  - Cursor: run `/init-memory` in chat (triggers the `init-memory` skill in `.cursor/skills/`)
 - Existing project re-run:
-  - Cline/Cursor: run `/update-memory` or `@update-memory`
+  - Cline: run `/update-memory`
+  - Cursor: run `/update-memory` in chat
 - Other providers: fill and maintain generated context files manually.
+
+> Cursor uses Agent Skills (folder-based `SKILL.md` files) instead of the legacy `@workflow` commands. Skills live under `.cursor/skills/<slug>/SKILL.md` and are invoked via `/<slug>` in chat.
 
 ## Commands
 
