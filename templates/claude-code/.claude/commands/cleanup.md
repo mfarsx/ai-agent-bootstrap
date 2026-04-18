@@ -1,9 +1,5 @@
----
-description: "Remove dead code, debug artifacts, and unused imports"
-alwaysApply: false
----
 
-# /cleanup — Remove Dead Code and Debug Artifacts
+# /cleanup - Remove Dead Code and Debug Artifacts
 
 ## Steps
 
@@ -23,10 +19,10 @@ alwaysApply: false
    - Show count: "Found X items across Y files"
    - Wait for approval
 
-4. **Apply cleanups** file by file → run `npm test` after to confirm nothing broke
+4. **Apply cleanups** file by file  run `npm test` after to confirm nothing broke
 
 ## Rules
-- Only remove obvious junk — never remove code that "looks unused"
-- Do not refactor, rename, or restructure — cleanup only
-- Keep intentional logging (error handlers) — only remove debug artifacts
+- Only remove obvious junk - never remove code that "looks unused"
+- Do not refactor, rename, or restructure - cleanup only
+- Keep intentional logging (error handlers) - only remove debug artifacts
 - Flag uncertain items to user instead of removing

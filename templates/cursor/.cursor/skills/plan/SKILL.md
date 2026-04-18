@@ -1,22 +1,22 @@
 ---
-description: "Create implementation plan before writing any code"
-alwaysApply: false
+name: plan
+description: Create an implementation plan before writing code. Use when a task touches 2+ files, the approach is unclear, there are multiple valid approaches, or the user asks for a plan.
 ---
 
-# /plan — Implementation Plan Before Coding
+# /plan - Implementation Plan Before Coding
 
 Use when: task involves 2+ files, or approach is unclear.
 
 ## Steps
 
-1. **Clarify the goal** — restate in one sentence. Ask NOW if anything is ambiguous.
+1. **Clarify the goal** - restate in one sentence. Ask NOW if anything is ambiguous.
 
 2. **Map affected files**
    - Every file that changes + one-line description of the change
    - Indirect impacts (imports, tests, README)
    - New files to create
 
-3. **Define order of operations** — numbered, dependencies first. Mark risky steps ⚠️
+3. **Define order of operations** - numbered, dependencies first. Mark risky steps ??
 
 4. **Identify risks**
    - What could break?
@@ -31,8 +31,8 @@ Use when: task involves 2+ files, or approach is unclear.
    Scope: [small/medium/large]
 
    Steps:
-   1. [action] → [file]
-   2. [action] → [file]
+   1. [action]  [file]
+   2. [action]  [file]
 
    Risks:
    - [risk]
@@ -42,4 +42,4 @@ Use when: task involves 2+ files, or approach is unclear.
 - Do NOT write any code during planning
 - Skip plan for obviously small tasks (typo fix, single-line change)
 - Keep plan under 20 lines
-- If user says "just do it" — do it
+- If user says "just do it" - do it

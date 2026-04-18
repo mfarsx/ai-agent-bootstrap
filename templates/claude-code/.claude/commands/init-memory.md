@@ -1,11 +1,5 @@
----
-description: "Populate memory-bank files for a new or existing project"
-alwaysApply: false
----
 
 # /init-memory
-
-Triggered when user types `/init-memory` in chat.
 
 ## Purpose
 
@@ -25,7 +19,7 @@ Populate the `memory-bank/` files for a new or existing project. Use this at the
 
 2. **Write `projectbrief.md`**
    - Fill in: Overview, Goals, Target Audience, Core Requirements, Out of Scope
-   - Keep it factual — this is the foundation all other files reference
+   - Keep it factual - this is the foundation all other files reference
    - Do NOT use placeholder comments; every section must have real content
 
 3. **Write `productContext.md`**
@@ -45,7 +39,7 @@ Populate the `memory-bank/` files for a new or existing project. Use this at the
    - Design Patterns in Use: patterns the codebase follows or will follow
    - Component Relationships: how major pieces connect
    - File Structure: describe folder/file organization
-   - If the project is brand new, write intended patterns — mark them as "planned"
+   - If the project is brand new, write intended patterns - mark them as "planned"
 
 6. **Write `techContext.md`**
    - Stack, Dependencies, Development Setup commands, Technical Constraints, Tool Configuration
@@ -53,7 +47,7 @@ Populate the `memory-bank/` files for a new or existing project. Use this at the
 
 7. **Write `progress.md`**
    - What Works: completed features (empty if brand new)
-   - What's Left: remaining work in priority order
+   - What''s Left: remaining work in priority order
    - Known Issues: any bugs or tech debt already identified
    - Milestones: key targets if known
 
@@ -64,8 +58,8 @@ Populate the `memory-bank/` files for a new or existing project. Use this at the
 
 ## Rules
 
-- Never leave placeholder comments like `<!-- What are you working on? -->` — fill in real content or omit the section
-- If the user can't answer something, write a sensible default and flag it: "(assumed — please verify)"
-- Keep each file under 2 pages — link to external docs for detail
+- Never leave placeholder comments like `<!-- What are you working on? -->` - fill in real content or omit the section
+- If the user can''t answer something, write a sensible default and flag it: "(assumed - please verify)"
+- Keep each file under 2 pages - link to external docs for detail
 - Do not modify any files outside `memory-bank/`
-- If any `memory-bank/` file already has content, read it first and merge — do not overwrite without asking
+- If any `memory-bank/` file already has content, read it first and merge - do not overwrite without asking

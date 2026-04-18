@@ -4,9 +4,13 @@
 
 {{TECH_STACK}}
 
-## Dependencies
+## Key Tools & Extras
 
 {{EXTRAS}}
+
+## Dependencies
+
+<!-- Major libraries/frameworks with a one-line "why this one". -->
 
 ## Development Setup
 
@@ -18,4 +22,4 @@
 
 ## Tool Configuration
 
-<!-- Linter, formatter, build config — anything non-obvious. -->
+<!-- Linter, formatter, build config - anything non-obvious. -->

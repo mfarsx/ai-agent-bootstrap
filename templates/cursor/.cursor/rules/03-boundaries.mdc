@@ -20,4 +20,3 @@ These rules are non-negotiable. Do NOT break them without explicit user approval
 - Check if a file exists before creating one with a similar name
 - Prefer existing dependencies over adding new ones
 - Consider bundle size — small, focused packages over kitchen-sink libraries
-- Verify `public/` asset references exist after changes

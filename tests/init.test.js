@@ -12,6 +12,7 @@ const EXPECTED_FILES = [
   "memory-bank/systemPatterns.md",
   "memory-bank/techContext.md",
   "memory-bank/progress.md",
+  "AGENTS.md",
   ".clinerules/00-memory-bank.md",
   ".clinerules/01-coding-standards.md",
   ".clinerules/02-workflow.md",
@@ -40,6 +41,7 @@ const CURSOR_EXPECTED_FILES = [
   ".cursor/rules/01-coding-standards.mdc",
   ".cursor/rules/02-workflow.mdc",
   ".cursor/rules/03-boundaries.mdc",
+  ".cursorignore",
   ".gitignore",
 ];
 
@@ -57,6 +59,11 @@ const WINDSURF_SENTINEL_FILES = [
   "AGENTS.md",
   ".windsurf/rules/00-memory-bank.md",
   ".windsurf/rules/03-boundaries.md",
+  ".windsurf/workflows/plan.md",
+  ".windsurf/workflows/commit.md",
+  ".windsurf/workflows/init-memory.md",
+  ".windsurf/workflows/update-memory.md",
+  ".windsurfignore",
   ".gitignore",
 ];
 
@@ -133,7 +140,7 @@ module.exports = async function registerInitTests({ test, assert }) {
       const content = await fs.readFile(path.join(targetDir, ".gitignore"), "utf-8");
       const entries = content.split(/\r?\n/);
       const ruleEntries = entries.filter(
-        (entry) => entry.trim() === ".clinerules/00-memory-bank.md",
+        (entry) => entry.trim() === "/.clinerules/00-memory-bank.md",
       );
       assert.strictEqual(ruleEntries.length, 1);
     });
@@ -189,7 +196,15 @@ module.exports = async function registerInitTests({ test, assert }) {
       const expectedFiles = [
         "AGENTS.md",
         "CLAUDE.md",
+        ".claude/commands/init-memory.md",
         ".claude/commands/update-memory.md",
+        ".claude/commands/plan.md",
+        ".claude/commands/commit.md",
+        ".claude/commands/review.md",
+        ".claude/commands/checkpoint.md",
+        ".claude/commands/cleanup.md",
+        ".claude/commands/status.md",
+        ".claude/commands/stuck.md",
         "docs/context/projectbrief.md",
         "docs/context/productContext.md",
         "docs/context/activeContext.md",
@@ -214,6 +229,59 @@ module.exports = async function registerInitTests({ test, assert }) {
       );
       assert.ok(gitignoreContent.includes("docs/context/projectbrief.md"));
       assert.ok(gitignoreContent.includes("CLAUDE.md"));
+
+      const agentsContent = await fs.readFile(
+        path.join(targetDir, "AGENTS.md"),
+        "utf-8",
+      );
+      assert.ok(
+        agentsContent.includes("docs/context/"),
+        "claude-code AGENTS.md should reference docs/context/",
+      );
+      assert.strictEqual(
+        /persistent context in `memory-bank\/`/.test(agentsContent),
+        false,
+        "claude-code AGENTS.md must not reference memory-bank/",
+      );
+    });
+  });
+
+  test("initProject ignore files include shared baseline entries", async () => {
+    await withTempDir("ai-bootstrap-ignore-baseline-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "cline" }),
+      );
+      const cline = await fs.readFile(
+        path.join(targetDir, ".clineignore"),
+        "utf-8",
+      );
+      assert.ok(cline.includes(".venv/"), ".clineignore should include .venv/");
+      assert.ok(cline.includes("__pycache__/"));
+      assert.ok(cline.includes(".DS_Store"));
+    });
+
+    await withTempDir("ai-bootstrap-cursor-ignore-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "cursor" }),
+      );
+      const cursorIgnore = await fs.readFile(
+        path.join(targetDir, ".cursorignore"),
+        "utf-8",
+      );
+      assert.ok(cursorIgnore.includes("node_modules/"));
+      assert.ok(cursorIgnore.includes(".env"));
+    });
+
+    await withTempDir("ai-bootstrap-windsurf-ignore-", async (targetDir) => {
+      await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
+      );
+      const windsurfIgnore = await fs.readFile(
+        path.join(targetDir, ".windsurfignore"),
+        "utf-8",
+      );
+      assert.ok(windsurfIgnore.includes("dist/"));
+      assert.ok(windsurfIgnore.includes("target/"));
     });
   });
 
@@ -333,8 +401,32 @@ module.exports = async function registerInitTests({ test, assert }) {
 
       const text = output.logs.join("\n");
       assert.ok(
-        text.includes("@init-memory") && text.includes("in Cursor chat"),
-        "fresh cursor init should suggest @init-memory",
+        text.includes("/init-memory") && text.includes("in Cursor chat"),
+        "fresh cursor init should suggest /init-memory in Cursor chat",
+      );
+    });
+  });
+
+  test("initProject prints init-memory hint for windsurf and claude-code", async () => {
+    await withTempDir("ai-bootstrap-next-steps-windsurf-", async (targetDir) => {
+      const output = await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
+      );
+      const text = output.logs.join("\n");
+      assert.ok(
+        text.includes("/init-memory") && text.includes("in Windsurf chat"),
+        "windsurf init should suggest /init-memory in Windsurf chat",
+      );
+    });
+
+    await withTempDir("ai-bootstrap-next-steps-claude-", async (targetDir) => {
+      const output = await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, provider: "claude-code" }),
+      );
+      const text = output.logs.join("\n");
+      assert.ok(
+        text.includes("/init-memory") && text.includes("in Claude Code"),
+        "claude-code init should suggest /init-memory in Claude Code",
       );
     });
   });
@@ -402,6 +494,29 @@ module.exports = async function registerInitTests({ test, assert }) {
       assert.deepStrictEqual(answers.templateVariables, {
         OWNER_NAME: "third",
       });
+    });
+  });
+
+  test("collectInitData derives non-Node project structure for Python stack", async () => {
+    await withTempDir("ai-bootstrap-stack-python-", async (targetDir) => {
+      const { answers } = await collectInitData(targetDir, {
+        yes: true,
+        provider: "cline",
+        configContext: { stack: "Python" },
+      });
+
+      assert.strictEqual(answers.stack, "Python");
+      assert.ok(
+        answers.projectStructure.includes("main.py"),
+        "Python stack should produce a Python-flavored project structure default",
+      );
+      assert.strictEqual(
+        answers.projectStructure.includes("index.js"),
+        false,
+        "Python stack must not keep Node.js default structure",
+      );
+      assert.strictEqual(answers.installCommand, "pip install -r requirements.txt");
+      assert.strictEqual(answers.testCommand, "pytest");
     });
   });
 
