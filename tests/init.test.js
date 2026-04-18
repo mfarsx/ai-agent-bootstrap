@@ -140,7 +140,7 @@ module.exports = async function registerInitTests({ test, assert }) {
       const content = await fs.readFile(path.join(targetDir, ".gitignore"), "utf-8");
       const entries = content.split(/\r?\n/);
       const ruleEntries = entries.filter(
-        (entry) => entry.trim() === ".clinerules/00-memory-bank.md",
+        (entry) => entry.trim() === "/.clinerules/00-memory-bank.md",
       );
       assert.strictEqual(ruleEntries.length, 1);
     });

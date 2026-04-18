@@ -70,7 +70,10 @@ function createMemoryBankFiles() {
 }
 
 function createGitignoreEntries(files) {
-  return files.map((file) => file.target);
+  return files.map((file) => {
+    const target = file.target;
+    return target.startsWith("/") ? target : `/${target}`;
+  });
 }
 
 const CLINE_FILES = [
