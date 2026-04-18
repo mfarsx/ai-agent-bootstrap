@@ -83,3 +83,17 @@ build/
 /.clinerules/workflows/stuck.md
 /.clinerules/workflows/update-memory.md
 /.clineignore
+/.windsurf/rules/00-memory-bank.md
+/.windsurf/rules/01-coding-standards.md
+/.windsurf/rules/02-workflow.md
+/.windsurf/rules/03-boundaries.md
+/.windsurf/workflows/checkpoint.md
+/.windsurf/workflows/cleanup.md
+/.windsurf/workflows/commit.md
+/.windsurf/workflows/init-memory.md
+/.windsurf/workflows/plan.md
+/.windsurf/workflows/review.md
+/.windsurf/workflows/status.md
+/.windsurf/workflows/stuck.md
+/.windsurf/workflows/update-memory.md
+/.windsurfignore

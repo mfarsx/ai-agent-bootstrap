@@ -1,10 +1,11 @@
 {
   "name": "ai-agent-bootstrap",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "CLI to scaffold AI-agent context, rules, and memory files for Cline, Cursor, OpenClaw, Windsurf, and Claude Code.",
   "main": "src/index.js",
   "bin": {
-    "ai-bootstrap": "./bin/cli.js"
+    "ai-bootstrap": "./bin/cli.js",
+    "ai-agent-bootstrap": "./bin/cli.js"
   },
   "files": [
     "bin/",

@@ -12,6 +12,8 @@ Set up AI-agent project context in minutes, not hours.
 
 ```bash
 npx ai-agent-bootstrap init
+# also works:
+# npx ai-bootstrap init
 ```
 
 No install required. Answer a few prompts and your project is agent-ready.
@@ -21,6 +23,8 @@ For repeated use:
 ```bash
 npm install -g ai-agent-bootstrap
 ai-bootstrap init
+# also available as:
+# ai-agent-bootstrap init
 ```
 
 ## 30-Second Demo
@@ -36,6 +40,12 @@ ai-bootstrap init
 - Fast onboarding for new and existing repos.
 - Consistent AI behavior through shared rules and memory files.
 - Safer defaults that avoid destructive overwrites during `init`.
+
+## What's New In 1.1.6
+
+- Added CLI bin alias compatibility so both `ai-bootstrap` and `ai-agent-bootstrap` map to the same executable.
+- Improved command consistency for `npx` usage: `npx ai-agent-bootstrap init` and `npx ai-bootstrap init` are both valid.
+- Clarified docs around local repo execution vs npm package execution to reduce Windows command resolution confusion.
 
 ## What's New In 1.1.5
 
@@ -188,7 +198,15 @@ Yes. It is designed for both new and active repositories.
 Run:
 
 ```bash
-npx ai-agent-bootstrap init
+npx --yes ai-agent-bootstrap init
+```
+
+If you are inside this repository and testing locally, use:
+
+```bash
+node bin/cli.js init
+# or
+npm run init
 ```
 
 If this saves your team time, open an issue or PR to help improve provider templates.
