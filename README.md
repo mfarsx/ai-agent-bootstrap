@@ -37,6 +37,15 @@ ai-bootstrap init
 - Consistent AI behavior through shared rules and memory files.
 - Safer defaults that avoid destructive overwrites during `init`.
 
+## What's New In 1.1.5
+
+- Parity across providers: Cursor skills, Windsurf workflows, and Claude Code commands all cover the same 9 flows (`plan`, `review`, `commit`, `init-memory`, `update-memory`, `checkpoint`, `status`, `cleanup`, `stuck`).
+- New ignore files shipped with templates: `.cursorignore`, `.windsurfignore`, plus an expanded `.clineignore` baseline.
+- Cline gains its own `AGENTS.md` for a consistent overview across providers.
+- Stack-aware defaults: `init` now picks a sensible `projectStructure` and install/test/lint commands based on the chosen stack (Node.js, React, Python, Go, etc.).
+- Cursor rule posture cleaned up: `00-memory-bank` and `03-boundaries` stay always-on; `01-coding-standards` and `02-workflow` become agent-requestable to cut context bloat. `.cursor/index.mdc` is now a real map of rules, skills, and context.
+- Bug fixes across `AGENTS.md` and `03-boundaries.*`: removed hardcoded TypeScript and `public/` assumptions; corrected Claude Code's context path reference.
+
 ## What Gets Generated
 
 For `cline` (default), `init` scaffolds files like:
@@ -50,32 +59,45 @@ your-project/
 │   ├── systemPatterns.md
 │   ├── techContext.md
 │   └── progress.md
+├── AGENTS.md
 ├── .clinerules/
 │   ├── 00-memory-bank.md
 │   ├── 01-coding-standards.md
 │   ├── 02-workflow.md
 │   ├── 03-boundaries.md
 │   └── workflows/
+│       ├── plan.md
+│       ├── review.md
+│       ├── commit.md
+│       ├── init-memory.md
+│       ├── update-memory.md
+│       ├── checkpoint.md
+│       ├── status.md
+│       ├── cleanup.md
+│       └── stuck.md
 └── .clineignore
 ```
 
+Other providers follow the same shape under their own directories (`.cursor/`, `.windsurf/`, `.claude/`, `docs/context/`).
+
 Provider summary:
 
-- `cline`: `memory-bank/`, `.clinerules/`, `.clineignore`
-- `cursor`: `memory-bank/`, `.cursor/rules/`, `.cursor/skills/`, `AGENTS.md`
+- `cline`: `memory-bank/`, `AGENTS.md`, `.clinerules/` (rules + 9 workflows), `.clineignore`
+- `cursor`: `memory-bank/`, `AGENTS.md`, `.cursor/index.mdc`, `.cursor/rules/`, `.cursor/skills/` (9 skills), `.cursorignore`
 - `openclaw`: `memory-bank/`, `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`
-- `windsurf`: `memory-bank/`, `.windsurf/rules/`, `AGENTS.md`
-- `claude-code`: `docs/context/`, `CLAUDE.md`, `AGENTS.md`
+- `windsurf`: `memory-bank/`, `AGENTS.md`, `.windsurf/rules/`, `.windsurf/workflows/` (9 workflows), `.windsurfignore`
+- `claude-code`: `docs/context/`, `AGENTS.md`, `CLAUDE.md`, `.claude/commands/` (9 commands)
 
 ## After `init`: First Success Path
 
 - Fresh install:
   - Cline: run `/init-memory`
   - Cursor: run `/init-memory` in chat (triggers the `init-memory` skill in `.cursor/skills/`)
+  - Windsurf: run `/init-memory` in Windsurf chat (uses `.windsurf/workflows/init-memory.md`)
+  - Claude Code: run `/init-memory` in Claude Code (uses `.claude/commands/init-memory.md`)
 - Existing project re-run:
-  - Cline: run `/update-memory`
-  - Cursor: run `/update-memory` in chat
-- Other providers: fill and maintain generated context files manually.
+  - Cline / Cursor / Windsurf / Claude Code: run `/update-memory` in the agent chat
+- OpenClaw: fill and maintain generated context files manually.
 
 > Cursor uses Agent Skills (folder-based `SKILL.md` files) instead of the legacy `@workflow` commands. Skills live under `.cursor/skills/<slug>/SKILL.md` and are invoked via `/<slug>` in chat.
 
@@ -138,6 +160,8 @@ Create `bootstrap.config.json` in your project root (auto-discovered) or pass it
 Variable precedence:
 
 `defaults < prompt answers < config file < --var flags`
+
+> `context.stack` (e.g. `Node.js`, `React`, `Python`, `Go`) drives the default `projectStructure` and install/test/lint commands, so picking the right stack is the fastest way to get accurate scaffolding.
 
 ## Safe By Default
 
