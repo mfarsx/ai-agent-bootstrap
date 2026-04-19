@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs-extra");
+const fs = require("../src/core/fs-helpers");
 const { initProject } = require("../src/init");
 const { resetProject } = require("../src/reset");
 const { withTempDir, captureConsole, runCli } = require("./helpers");
@@ -11,14 +11,25 @@ module.exports = async function registerUpdateTests({ test, assert }) {
         initProject({ dir: targetDir, yes: true, provider: "cline" }),
       );
 
-      const projectBrief = path.join(targetDir, "memory-bank", "projectbrief.md");
+      const projectBrief = path.join(
+        targetDir,
+        "memory-bank",
+        "projectbrief.md",
+      );
       await fs.writeFile(projectBrief, "user drift", "utf-8");
 
       const { logs } = await captureConsole(() =>
-        resetProject({ dir: targetDir, yes: true, provider: "cline", dryRun: true }),
+        resetProject({
+          dir: targetDir,
+          yes: true,
+          provider: "cline",
+          dryRun: true,
+        }),
       );
       const out = logs.join("\n");
-      assert.ok(out.includes("memory-bank/projectbrief.md") || out.includes("+++"));
+      assert.ok(
+        out.includes("memory-bank/projectbrief.md") || out.includes("+++"),
+      );
     });
   });
 
@@ -28,7 +39,11 @@ module.exports = async function registerUpdateTests({ test, assert }) {
         initProject({ dir: targetDir, yes: true, provider: "cline" }),
       );
 
-      const projectBrief = path.join(targetDir, "memory-bank", "projectbrief.md");
+      const projectBrief = path.join(
+        targetDir,
+        "memory-bank",
+        "projectbrief.md",
+      );
       await fs.writeFile(projectBrief, "user drift", "utf-8");
 
       await captureConsole(() =>
@@ -48,7 +63,11 @@ module.exports = async function registerUpdateTests({ test, assert }) {
         { cwd: targetDir },
       );
 
-      const projectBrief = path.join(targetDir, "memory-bank", "projectbrief.md");
+      const projectBrief = path.join(
+        targetDir,
+        "memory-bank",
+        "projectbrief.md",
+      );
       await fs.writeFile(projectBrief, "drift", "utf-8");
 
       const result = await runCli(

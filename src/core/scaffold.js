@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs-extra");
+const fs = require("./fs-helpers");
 const { resolveTemplatePath } = require("../providers");
 const { renderTemplateFile } = require("./template");
 
@@ -11,7 +11,9 @@ async function resolveFileItems(targetDir, provider, data) {
     const templateFile = resolveTemplatePath(provider, file);
     const rendered = await renderTemplateFile(templateFile, data);
     const exists = await fs.pathExists(targetFile);
-    const currentContent = exists ? await fs.readFile(targetFile, "utf-8") : null;
+    const currentContent = exists
+      ? await fs.readFile(targetFile, "utf-8")
+      : null;
 
     items.push({
       target: file.target,

@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs-extra");
+const fs = require("../src/core/fs-helpers");
 const { fillTemplate } = require("../src/utils");
 
 module.exports = async function registerUtilsTests({ test, assert }) {

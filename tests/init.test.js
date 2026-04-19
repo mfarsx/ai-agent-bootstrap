@@ -1,6 +1,6 @@
 const path = require("path");
 const nodeFs = require("fs");
-const fs = require("fs-extra");
+const fs = require("../src/core/fs-helpers");
 const { initProject } = require("../src/init");
 const { collectInitData } = require("../src/commands/init");
 const { withTempDir, captureConsole } = require("./helpers");
@@ -75,7 +75,9 @@ module.exports = async function registerInitTests({ test, assert }) {
       );
 
       assert.strictEqual(
-        await fs.pathExists(path.join(targetDir, "memory-bank", "projectbrief.md")),
+        await fs.pathExists(
+          path.join(targetDir, "memory-bank", "projectbrief.md"),
+        ),
         false,
       );
     });
@@ -133,17 +135,23 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject keeps .gitignore entries idempotent across reruns", async () => {
-    await withTempDir("ai-bootstrap-gitignore-idempotent-", async (targetDir) => {
-      await captureConsole(() => initProject({ dir: targetDir, yes: true }));
-      await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+    await withTempDir(
+      "ai-bootstrap-gitignore-idempotent-",
+      async (targetDir) => {
+        await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+        await captureConsole(() => initProject({ dir: targetDir, yes: true }));
 
-      const content = await fs.readFile(path.join(targetDir, ".gitignore"), "utf-8");
-      const entries = content.split(/\r?\n/);
-      const ruleEntries = entries.filter(
-        (entry) => entry.trim() === "/.clinerules/00-memory-bank.md",
-      );
-      assert.strictEqual(ruleEntries.length, 1);
-    });
+        const content = await fs.readFile(
+          path.join(targetDir, ".gitignore"),
+          "utf-8",
+        );
+        const entries = content.split(/\r?\n/);
+        const ruleEntries = entries.filter(
+          (entry) => entry.trim() === "/.clinerules/00-memory-bank.md",
+        );
+        assert.strictEqual(ruleEntries.length, 1);
+      },
+    );
   });
 
   test("initProject supports relative nested paths with spaces", async () => {
@@ -408,16 +416,19 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject prints init-memory hint for windsurf and claude-code", async () => {
-    await withTempDir("ai-bootstrap-next-steps-windsurf-", async (targetDir) => {
-      const output = await captureConsole(() =>
-        initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
-      );
-      const text = output.logs.join("\n");
-      assert.ok(
-        text.includes("/init-memory") && text.includes("in Windsurf chat"),
-        "windsurf init should suggest /init-memory in Windsurf chat",
-      );
-    });
+    await withTempDir(
+      "ai-bootstrap-next-steps-windsurf-",
+      async (targetDir) => {
+        const output = await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
+        );
+        const text = output.logs.join("\n");
+        assert.ok(
+          text.includes("/init-memory") && text.includes("in Windsurf chat"),
+          "windsurf init should suggest /init-memory in Windsurf chat",
+        );
+      },
+    );
 
     await withTempDir("ai-bootstrap-next-steps-claude-", async (targetDir) => {
       const output = await captureConsole(() =>
@@ -455,7 +466,10 @@ module.exports = async function registerInitTests({ test, assert }) {
       const { answers } = await collectInitData(targetDir, {
         yes: true,
         provider: "cline",
-        templateVariables: ["owner_name=cli-team", "build_command=npm run build"],
+        templateVariables: [
+          "owner_name=cli-team",
+          "build_command=npm run build",
+        ],
       });
 
       assert.deepStrictEqual(answers.templateVariables, {
@@ -466,35 +480,41 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("collectInitData ignores invalid KEY=VALUE template variable forms", async () => {
-    await withTempDir("ai-bootstrap-context-invalid-vars-", async (targetDir) => {
-      const { answers } = await collectInitData(targetDir, {
-        yes: true,
-        provider: "cline",
-        templateVariables: ["NO_SEPARATOR", "=empty", "valid_key=value"],
-      });
+    await withTempDir(
+      "ai-bootstrap-context-invalid-vars-",
+      async (targetDir) => {
+        const { answers } = await collectInitData(targetDir, {
+          yes: true,
+          provider: "cline",
+          templateVariables: ["NO_SEPARATOR", "=empty", "valid_key=value"],
+        });
 
-      assert.deepStrictEqual(answers.templateVariables, {
-        VALID_KEY: "value",
-      });
-    });
+        assert.deepStrictEqual(answers.templateVariables, {
+          VALID_KEY: "value",
+        });
+      },
+    );
   });
 
   test("collectInitData uses last-write-wins for duplicate template variable keys", async () => {
-    await withTempDir("ai-bootstrap-context-duplicate-vars-", async (targetDir) => {
-      const { answers } = await collectInitData(targetDir, {
-        yes: true,
-        provider: "cline",
-        templateVariables: [
-          "owner_name=first",
-          "OWNER_NAME=second",
-          "owner name=third",
-        ],
-      });
+    await withTempDir(
+      "ai-bootstrap-context-duplicate-vars-",
+      async (targetDir) => {
+        const { answers } = await collectInitData(targetDir, {
+          yes: true,
+          provider: "cline",
+          templateVariables: [
+            "owner_name=first",
+            "OWNER_NAME=second",
+            "owner name=third",
+          ],
+        });
 
-      assert.deepStrictEqual(answers.templateVariables, {
-        OWNER_NAME: "third",
-      });
-    });
+        assert.deepStrictEqual(answers.templateVariables, {
+          OWNER_NAME: "third",
+        });
+      },
+    );
   });
 
   test("collectInitData derives non-Node project structure for Python stack", async () => {
@@ -515,7 +535,10 @@ module.exports = async function registerInitTests({ test, assert }) {
         false,
         "Python stack must not keep Node.js default structure",
       );
-      assert.strictEqual(answers.installCommand, "pip install -r requirements.txt");
+      assert.strictEqual(
+        answers.installCommand,
+        "pip install -r requirements.txt",
+      );
       assert.strictEqual(answers.testCommand, "pytest");
     });
   });

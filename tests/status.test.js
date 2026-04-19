@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs-extra");
+const fs = require("../src/core/fs-helpers");
 const { checkStatus } = require("../src/status");
 const { getExpectedFiles } = require("../src/providers");
 const { withTempDir, captureConsole } = require("./helpers");
@@ -57,7 +57,9 @@ module.exports = async function registerStatusTests({ test, assert }) {
       );
       const text = output.logs.join("\n");
 
-      assert.ok(text.includes(`📊 ${files.length}/${files.length} files found.`));
+      assert.ok(
+        text.includes(`📊 ${files.length}/${files.length} files found.`),
+      );
       assert.ok(text.includes("All files in place!"));
     });
   });
@@ -173,7 +175,10 @@ module.exports = async function registerStatusTests({ test, assert }) {
       assert.strictEqual(report.provider.name, "cursor");
       assert.strictEqual(Array.isArray(report.entries), true);
       assert.strictEqual(report.expectedFiles.length, expectedFiles.length);
-      assert.strictEqual(report.found + report.missing, report.expectedFiles.length);
+      assert.strictEqual(
+        report.found + report.missing,
+        report.expectedFiles.length,
+      );
       assert.strictEqual(report.entries.length, report.expectedFiles.length);
       assert.strictEqual(
         report.entries.every((entry) => typeof entry.target === "string"),

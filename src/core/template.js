@@ -1,4 +1,4 @@
-const fs = require("fs-extra");
+const fs = require("./fs-helpers");
 const { fillTemplate } = require("../utils");
 
 async function renderTemplateFile(templatePath, data) {

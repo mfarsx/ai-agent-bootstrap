@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs-extra");
+const fs = require("./fs-helpers");
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -49,7 +49,9 @@ async function loadInitConfig(configPath) {
   }
 
   if (!isPlainObject(parsed)) {
-    const error = new Error(`Config file must be a JSON object: ${resolvedPath}`);
+    const error = new Error(
+      `Config file must be a JSON object: ${resolvedPath}`,
+    );
     error.code = "CONFIG_INVALID_SHAPE";
     throw error;
   }
@@ -58,7 +60,9 @@ async function loadInitConfig(configPath) {
   const templateVariables = parsed.templateVariables || parsed.variables || {};
 
   if (!isPlainObject(context)) {
-    const error = new Error(`Config "context" must be an object: ${resolvedPath}`);
+    const error = new Error(
+      `Config "context" must be an object: ${resolvedPath}`,
+    );
     error.code = "CONFIG_INVALID_CONTEXT";
     throw error;
   }

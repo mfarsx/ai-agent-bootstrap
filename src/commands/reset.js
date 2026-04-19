@@ -1,11 +1,14 @@
 const path = require("path");
 const chalk = require("chalk");
-const fs = require("fs-extra");
+const fs = require("../core/fs-helpers");
 const { createTwoFilesPatch } = require("diff");
-const inquirer = require("inquirer");
+const prompts = require("prompts");
 const { collectInitData } = require("./init");
 const { buildProviderRenderPlan } = require("../core/scaffold");
-const { getGitignoreMergePlan, mergeGitignoreEntries } = require("../gitignore");
+const {
+  getGitignoreMergePlan,
+  mergeGitignoreEntries,
+} = require("../gitignore");
 const { printHeader } = require("./ui");
 
 function assertConfirmableOrYes(yes) {
@@ -30,16 +33,14 @@ async function confirmReset({ fileChangeCount, gitignoreWillChange }) {
   }
 
   const detail = pieces.length ? ` (${pieces.join(", ")})` : "";
-  const { confirmed } = await inquirer.prompt([
-    {
-      type: "confirm",
-      name: "confirmed",
-      default: false,
-      message: `Reset files from templates${detail}?`,
-    },
-  ]);
+  const { confirmed } = await prompts({
+    type: "confirm",
+    name: "confirmed",
+    initial: false,
+    message: `Reset files from templates${detail}?`,
+  });
 
-  return confirmed;
+  return Boolean(confirmed);
 }
 
 function printDiffs(fileChanges, gitignoreBefore, gitignoreNext) {
@@ -94,7 +95,10 @@ async function resetProject(options = {}) {
     fileChanges.push({ target: item.target, before, after });
   }
 
-  const gitPlan = await getGitignoreMergePlan(targetDir, provider.gitignoreEntries);
+  const gitPlan = await getGitignoreMergePlan(
+    targetDir,
+    provider.gitignoreEntries,
+  );
   const gitignorePath = path.join(targetDir, ".gitignore");
   const gitignoreExists = await fs.pathExists(gitignorePath);
   const gitignoreBefore = gitignoreExists

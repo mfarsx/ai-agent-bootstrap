@@ -1,6 +1,10 @@
 const path = require("path");
-const fs = require("fs-extra");
-const { DEFAULT_PROVIDER, getProvider, getExpectedFiles } = require("../providers");
+const fs = require("./fs-helpers");
+const {
+  DEFAULT_PROVIDER,
+  getProvider,
+  getExpectedFiles,
+} = require("../providers");
 
 async function buildStatusReport(options = {}) {
   const targetDir = path.resolve(options.dir || ".");

@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs-extra");
+const fs = require("./core/fs-helpers");
 
 function uniqueEntries(entries) {
   const seen = new Set();
@@ -26,7 +26,9 @@ async function getGitignoreMergePlan(targetDir, entries) {
   }
 
   const exists = await fs.pathExists(gitignorePath);
-  const currentContent = exists ? await fs.readFile(gitignorePath, "utf-8") : "";
+  const currentContent = exists
+    ? await fs.readFile(gitignorePath, "utf-8")
+    : "";
   const currentLines = currentContent.split(/\r?\n/).map((line) => line.trim());
   const lineSet = new Set(currentLines.filter(Boolean));
   const missing = unique.filter((entry) => !lineSet.has(entry));
@@ -43,7 +45,12 @@ async function getGitignoreMergePlan(targetDir, entries) {
   parts.push(...missing);
 
   const nextContent = `${parts.join("\n")}\n`;
-  return { added: missing.length, created: !exists, nextContent, gitignorePath };
+  return {
+    added: missing.length,
+    created: !exists,
+    nextContent,
+    gitignorePath,
+  };
 }
 
 async function previewGitignoreMerge(targetDir, entries) {

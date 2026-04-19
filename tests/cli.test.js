@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs-extra");
+const fs = require("../src/core/fs-helpers");
 const { withTempDir, runCli, runNodeScript } = require("./helpers");
 
 module.exports = async function registerCliTests({ test, assert }) {
@@ -13,7 +13,9 @@ module.exports = async function registerCliTests({ test, assert }) {
       assert.strictEqual(result.code, 0);
       assert.ok(result.stdout.includes("Done!"));
       assert.strictEqual(
-        await fs.pathExists(path.join(targetDir, "memory-bank", "projectbrief.md")),
+        await fs.pathExists(
+          path.join(targetDir, "memory-bank", "projectbrief.md"),
+        ),
         true,
       );
       const gitignoreContent = await fs.readFile(
@@ -54,7 +56,11 @@ module.exports = async function registerCliTests({ test, assert }) {
       assert.strictEqual(result.code, 1);
       assert.ok(result.stderr.includes("unknown provider:"));
       assert.ok(result.stderr.includes("Unknown provider"));
-      assert.ok(result.stderr.includes("cline, cursor, openclaw, windsurf, claude-code"));
+      assert.ok(
+        result.stderr.includes(
+          "cline, cursor, openclaw, windsurf, claude-code",
+        ),
+      );
     });
   });
 
@@ -101,7 +107,9 @@ module.exports = async function registerCliTests({ test, assert }) {
   test("cli exits non-zero when provider option value is missing", async () => {
     const result = await runCli(["init", "--provider"]);
     assert.notStrictEqual(result.code, 0);
-    assert.ok(result.stderr.includes("option '-p, --provider <name>' argument missing"));
+    assert.ok(
+      result.stderr.includes("option '-p, --provider <name>' argument missing"),
+    );
   });
 
   test("cli exits non-zero for empty target dir option", async () => {
@@ -132,7 +140,9 @@ module.exports = async function registerCliTests({ test, assert }) {
       assert.strictEqual(result.code, 0);
       assert.ok(result.stdout.includes("Done!"));
       assert.strictEqual(
-        await fs.pathExists(path.join(targetDir, "memory-bank", "projectbrief.md")),
+        await fs.pathExists(
+          path.join(targetDir, "memory-bank", "projectbrief.md"),
+        ),
         true,
       );
     });
@@ -141,13 +151,24 @@ module.exports = async function registerCliTests({ test, assert }) {
   test("cli init --dry-run does not write files", async () => {
     await withTempDir("ai-bootstrap-cli-dry-run-", async (targetDir) => {
       const result = await runCli(
-        ["init", "--provider", "cline", "--yes", "--dry-run", "--dir", targetDir],
+        [
+          "init",
+          "--provider",
+          "cline",
+          "--yes",
+          "--dry-run",
+          "--dir",
+          targetDir,
+        ],
         { cwd: targetDir },
       );
 
       assert.strictEqual(result.code, 0);
       assert.ok(result.stdout.includes("Dry run"));
-      assert.ok(result.stdout.includes("would be created") || result.stdout.includes("would create"));
+      assert.ok(
+        result.stdout.includes("would be created") ||
+          result.stdout.includes("would create"),
+      );
 
       assert.strictEqual(
         await fs.pathExists(path.join(targetDir, "memory-bank")),
@@ -157,32 +178,35 @@ module.exports = async function registerCliTests({ test, assert }) {
   });
 
   test("cli init auto-discovers bootstrap.config.json in target dir without --config", async () => {
-    await withTempDir("ai-bootstrap-cli-config-autodetect-", async (targetDir) => {
-      await fs.writeFile(
-        path.join(targetDir, "bootstrap.config.json"),
-        JSON.stringify(
-          {
-            context: {
-              provider: "cursor",
+    await withTempDir(
+      "ai-bootstrap-cli-config-autodetect-",
+      async (targetDir) => {
+        await fs.writeFile(
+          path.join(targetDir, "bootstrap.config.json"),
+          JSON.stringify(
+            {
+              context: {
+                provider: "cursor",
+              },
             },
-          },
-          null,
-          2,
-        ),
-        "utf-8",
-      );
+            null,
+            2,
+          ),
+          "utf-8",
+        );
 
-      const result = await runCli(
-        ["init", "--provider", "cline", "--yes", "--dir", targetDir],
-        { cwd: targetDir },
-      );
+        const result = await runCli(
+          ["init", "--provider", "cline", "--yes", "--dir", targetDir],
+          { cwd: targetDir },
+        );
 
-      assert.strictEqual(result.code, 0);
-      assert.strictEqual(
-        await fs.pathExists(path.join(targetDir, ".cursor", "index.mdc")),
-        true,
-      );
-    });
+        assert.strictEqual(result.code, 0);
+        assert.strictEqual(
+          await fs.pathExists(path.join(targetDir, ".cursor", "index.mdc")),
+          true,
+        );
+      },
+    );
   });
 
   test("cli init accepts --config and applies provider context", async () => {
@@ -367,60 +391,71 @@ module.exports = async function registerCliTests({ test, assert }) {
   });
 
   test("cli init fails for invalid --config JSON", async () => {
-    await withTempDir("ai-bootstrap-cli-config-invalid-json-", async (targetDir) => {
-      const configPath = path.join(targetDir, "bootstrap.config.json");
-      await fs.writeFile(configPath, "{ not-valid-json", "utf-8");
+    await withTempDir(
+      "ai-bootstrap-cli-config-invalid-json-",
+      async (targetDir) => {
+        const configPath = path.join(targetDir, "bootstrap.config.json");
+        await fs.writeFile(configPath, "{ not-valid-json", "utf-8");
 
-      const result = await runCli(
-        ["init", "--yes", "--dir", targetDir, "--config", configPath],
-        { cwd: targetDir },
-      );
+        const result = await runCli(
+          ["init", "--yes", "--dir", targetDir, "--config", configPath],
+          { cwd: targetDir },
+        );
 
-      assert.strictEqual(result.code, 1);
-      assert.ok(result.stderr.includes("config error:"));
-      assert.ok(result.stderr.includes("Invalid config file JSON"));
-    });
+        assert.strictEqual(result.code, 1);
+        assert.ok(result.stderr.includes("config error:"));
+        assert.ok(result.stderr.includes("Invalid config file JSON"));
+      },
+    );
   });
 
   test("cli init fails for invalid --config context type", async () => {
-    await withTempDir("ai-bootstrap-cli-config-invalid-shape-", async (targetDir) => {
-      const configPath = path.join(targetDir, "bootstrap.config.json");
-      await fs.writeFile(
-        configPath,
-        JSON.stringify({ context: "not-an-object" }),
-        "utf-8",
-      );
+    await withTempDir(
+      "ai-bootstrap-cli-config-invalid-shape-",
+      async (targetDir) => {
+        const configPath = path.join(targetDir, "bootstrap.config.json");
+        await fs.writeFile(
+          configPath,
+          JSON.stringify({ context: "not-an-object" }),
+          "utf-8",
+        );
 
-      const result = await runCli(
-        ["init", "--yes", "--dir", targetDir, "--config", configPath],
-        { cwd: targetDir },
-      );
+        const result = await runCli(
+          ["init", "--yes", "--dir", targetDir, "--config", configPath],
+          { cwd: targetDir },
+        );
 
-      assert.strictEqual(result.code, 1);
-      assert.ok(result.stderr.includes("config error:"));
-      assert.ok(result.stderr.includes('Config "context" must be an object'));
-    });
+        assert.strictEqual(result.code, 1);
+        assert.ok(result.stderr.includes("config error:"));
+        assert.ok(result.stderr.includes('Config "context" must be an object'));
+      },
+    );
   });
 
   test("cli init fails for invalid --config templateVariables type", async () => {
-    await withTempDir("ai-bootstrap-cli-config-invalid-vars-shape-", async (targetDir) => {
-      const configPath = path.join(targetDir, "bootstrap.config.json");
-      await fs.writeFile(
-        configPath,
-        JSON.stringify({ templateVariables: "not-an-object" }),
-        "utf-8",
-      );
+    await withTempDir(
+      "ai-bootstrap-cli-config-invalid-vars-shape-",
+      async (targetDir) => {
+        const configPath = path.join(targetDir, "bootstrap.config.json");
+        await fs.writeFile(
+          configPath,
+          JSON.stringify({ templateVariables: "not-an-object" }),
+          "utf-8",
+        );
 
-      const result = await runCli(
-        ["init", "--yes", "--dir", targetDir, "--config", configPath],
-        { cwd: targetDir },
-      );
+        const result = await runCli(
+          ["init", "--yes", "--dir", targetDir, "--config", configPath],
+          { cwd: targetDir },
+        );
 
-      assert.strictEqual(result.code, 1);
-      assert.ok(result.stderr.includes("config error:"));
-      assert.ok(
-        result.stderr.includes('Config "templateVariables" must be an object or array'),
-      );
-    });
+        assert.strictEqual(result.code, 1);
+        assert.ok(result.stderr.includes("config error:"));
+        assert.ok(
+          result.stderr.includes(
+            'Config "templateVariables" must be an object or array',
+          ),
+        );
+      },
+    );
   });
 };

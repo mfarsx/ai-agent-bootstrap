@@ -1,7 +1,7 @@
 const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
-const fs = require("fs-extra");
+const fs = require("../src/core/fs-helpers");
 
 async function withTempDir(prefix, run) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
