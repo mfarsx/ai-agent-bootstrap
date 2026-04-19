@@ -1,7 +1,7 @@
 # ai-agent-bootstrap
 
 [![npm version](https://img.shields.io/npm/v/ai-agent-bootstrap)](https://www.npmjs.com/package/ai-agent-bootstrap)
-[![node](https://img.shields.io/badge/node-%3E%3D16-brightgreen)](https://nodejs.org/)
+[![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![license](https://img.shields.io/npm/l/ai-agent-bootstrap)](./LICENSE)
 
 Set up AI-agent project context in minutes, not hours.
@@ -41,13 +41,23 @@ ai-bootstrap init
 - Consistent AI behavior through shared rules and memory files.
 - Safer defaults that avoid destructive overwrites during `init`.
 
-## What's New In 1.1.6
+## What's New In 1.2.0
+
+- Replaced `inquirer` with `prompts` to reduce dependency surface.
+- Replaced `fs-extra` with a native `node:fs/promises` helper module.
+- Reduced transitive dependency footprint after lockfile regeneration.
+- Smaller install footprint: top-level dependencies are now just `chalk`, `commander`, `diff`, and `prompts`.
+- Added `CHANGELOG.md` for clearer release notes going forward.
+
+## Previous Highlights
+
+### 1.1.6
 
 - Added CLI bin alias compatibility so both `ai-bootstrap` and `ai-agent-bootstrap` map to the same executable.
 - Improved command consistency for `npx` usage: `npx ai-agent-bootstrap init` and `npx ai-bootstrap init` are both valid.
 - Clarified docs around local repo execution vs npm package execution to reduce Windows command resolution confusion.
 
-## What's New In 1.1.5
+### 1.1.5
 
 - Parity across providers: Cursor skills, Windsurf workflows, and Claude Code commands all cover the same 9 flows (`plan`, `review`, `commit`, `init-memory`, `update-memory`, `checkpoint`, `status`, `cleanup`, `stuck`).
 - New ignore files shipped with templates: `.cursorignore`, `.windsurfignore`, plus an expanded `.clineignore` baseline.

@@ -1,9 +1,21 @@
 #!/usr/bin/env node
 
+const [nodeMajorVersion] = process.versions.node.split(".").map(Number);
+if (nodeMajorVersion < 18) {
+  console.error(
+    `ai-agent-bootstrap requires Node.js 18 or later. You have ${process.versions.node}.`,
+  );
+  process.exit(1);
+}
+
 const { program } = require("commander");
 const chalk = require("chalk");
 const { version, description } = require("../package.json");
-const { DEFAULT_PROVIDER, getProvider, getProviderNames } = require("../src/providers");
+const {
+  DEFAULT_PROVIDER,
+  getProvider,
+  getProviderNames,
+} = require("../src/providers");
 
 program.name("ai-bootstrap").description(description).version(version);
 
@@ -18,7 +30,9 @@ function normalizeOptions(options = {}) {
   }
 
   if (typeof normalized.dir !== "string" || normalized.dir.trim() === "") {
-    const error = new Error("Invalid target dir. Use a non-empty directory path.");
+    const error = new Error(
+      "Invalid target dir. Use a non-empty directory path.",
+    );
     error.code = "INVALID_TARGET_DIR";
     throw error;
   }
@@ -60,10 +74,16 @@ function classifyError(error) {
   if (/templates are not ready/i.test(error.message)) {
     return "provider not ready";
   }
-  if (/ENOENT/i.test(error.message) || /missing template source/i.test(error.message)) {
+  if (
+    /ENOENT/i.test(error.message) ||
+    /missing template source/i.test(error.message)
+  ) {
     return "missing template file";
   }
-  if (/EACCES|EPERM/i.test(error.message) || /permission denied/i.test(error.message)) {
+  if (
+    /EACCES|EPERM/i.test(error.message) ||
+    /permission denied/i.test(error.message)
+  ) {
     return "permission denied";
   }
 
