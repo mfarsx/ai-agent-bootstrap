@@ -23,7 +23,7 @@ function printStatusSummary(report) {
   if (report.missing > 0) {
     console.log(
       chalk.yellow(
-        `   Run ${chalk.bold("ai-bootstrap init")} to create missing files.\n`,
+        `   Run ${chalk.bold("ai-agent-bootstrap init")} to create missing files.\n`,
       ),
     );
     return;

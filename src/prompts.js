@@ -1,124 +1,19 @@
 const path = require("path");
 const prompts = require("prompts");
 const { DEFAULT_PROVIDER, getProviderPromptChoices } = require("./providers");
-
-const STACK_COMMAND_DEFAULTS = {
-  "Node.js": {
-    installCommand: "npm install",
-    devCommand: "npm run dev",
-    testCommand: "npm test",
-    lintCommand: "npm run lint",
-  },
-  React: {
-    installCommand: "npm install",
-    devCommand: "npm start",
-    testCommand: "npm test",
-    lintCommand: "npm run lint",
-  },
-  "Next.js": {
-    installCommand: "npm install",
-    devCommand: "npm run dev",
-    testCommand: "npm test",
-    lintCommand: "npm run lint",
-  },
-  Vue: {
-    installCommand: "npm install",
-    devCommand: "npm run dev",
-    testCommand: "npm test",
-    lintCommand: "npm run lint",
-  },
-  Python: {
-    installCommand: "pip install -r requirements.txt",
-    devCommand: "python main.py",
-    testCommand: "pytest",
-    lintCommand: "ruff check .",
-  },
-  TypeScript: {
-    installCommand: "npm install",
-    devCommand: "npm run dev",
-    testCommand: "npm test",
-    lintCommand: "npm run lint && npm run typecheck",
-  },
-  Go: {
-    installCommand: "go mod tidy",
-    devCommand: "go run .",
-    testCommand: "go test ./...",
-    lintCommand: "go vet ./...",
-  },
-  Other: {
-    installCommand: "# update with your install command",
-    devCommand: "# update with your dev command",
-    testCommand: "# update with your test command",
-    lintCommand: "# update with your lint/typecheck command",
-  },
-};
-
-function getCommandDefaults(stack) {
-  return STACK_COMMAND_DEFAULTS[stack] || STACK_COMMAND_DEFAULTS.Other;
-}
-
-const STACK_PROJECT_STRUCTURES = {
-  "Node.js": "src/\n  ├── index.js\n  └── ...",
-  React: "src/\n  ├── App.jsx\n  ├── components/\n  └── ...",
-  "Next.js": "app/\n  ├── layout.tsx\n  ├── page.tsx\n  └── ...",
-  Vue: "src/\n  ├── App.vue\n  ├── components/\n  └── ...",
-  TypeScript: "src/\n  ├── index.ts\n  └── ...",
-  Python: "src/\n  ├── __init__.py\n  ├── main.py\n  └── ...",
-  Go: "cmd/\n  └── app/\n      └── main.go\ninternal/\n  └── ...",
-  Other: "<!-- Describe the project's file/folder organization -->",
-};
-
-function getProjectStructureDefault(stack) {
-  return STACK_PROJECT_STRUCTURES[stack] || STACK_PROJECT_STRUCTURES.Other;
-}
-
-function applyStackDerivedDefaults(
-  context,
-  { overrideStructure = false } = {},
-) {
-  if (!context || typeof context !== "object") return context;
-  const stack = context.stack || "Node.js";
-  const commands = getCommandDefaults(stack);
-  const nodeStructure = STACK_PROJECT_STRUCTURES["Node.js"];
-
-  if (
-    !context.installCommand ||
-    context.installCommand === STACK_COMMAND_DEFAULTS["Node.js"].installCommand
-  ) {
-    context.installCommand = commands.installCommand;
-  }
-  if (
-    !context.devCommand ||
-    context.devCommand === STACK_COMMAND_DEFAULTS["Node.js"].devCommand
-  ) {
-    context.devCommand = commands.devCommand;
-  }
-  if (
-    !context.testCommand ||
-    context.testCommand === STACK_COMMAND_DEFAULTS["Node.js"].testCommand
-  ) {
-    context.testCommand = commands.testCommand;
-  }
-  if (
-    !context.lintCommand ||
-    context.lintCommand === STACK_COMMAND_DEFAULTS["Node.js"].lintCommand
-  ) {
-    context.lintCommand = commands.lintCommand;
-  }
-  if (
-    overrideStructure ||
-    !context.projectStructure ||
-    context.projectStructure === nodeStructure
-  ) {
-    context.projectStructure = getProjectStructureDefault(stack);
-  }
-
-  return context;
-}
+const {
+  STACK_COMMAND_DEFAULTS,
+  STACK_PROJECT_STRUCTURES,
+  STACK_DERIVED_COMMAND_FIELDS,
+  getCommandDefaults,
+  getProjectStructureDefault,
+  applyStackDerivedDefaults,
+} = require("./core/stack-defaults");
+const { CancelledError } = require("./core/cli-errors");
 
 async function askQuestions(targetDir, defaults = {}) {
   const onCancel = () => {
-    process.exit(0);
+    throw new CancelledError();
   };
 
   const providerChoices = getProviderPromptChoices().map((choice) => ({
@@ -217,25 +112,17 @@ async function askQuestions(targetDir, defaults = {}) {
     ...response,
   };
 
+  const touched = new Set(Object.keys(response));
+
   if (answers.stack === "Other" && answers.stackOther) {
     answers.stack = answers.stackOther;
+    touched.add("stack");
   }
 
-  const commands = getCommandDefaults(answers.stack);
-  answers.installCommand = commands.installCommand;
-  answers.devCommand = commands.devCommand;
-  answers.testCommand = commands.testCommand;
-  answers.lintCommand = commands.lintCommand;
-  if (
-    !answers.projectStructure ||
-    answers.projectStructure === STACK_PROJECT_STRUCTURES["Node.js"]
-  ) {
-    answers.projectStructure = getProjectStructureDefault(answers.stack);
-  }
-
+  touched.delete("stackOther");
   delete answers.stackOther;
 
-  return answers;
+  return { answers, touched };
 }
 
 function getDefaults(targetDir) {
@@ -260,6 +147,10 @@ function getDefaults(targetDir) {
 }
 
 module.exports = {
+  STACK_COMMAND_DEFAULTS,
+  STACK_PROJECT_STRUCTURES,
+  STACK_DERIVED_COMMAND_FIELDS,
+  getCommandDefaults,
   askQuestions,
   getDefaults,
   getProjectStructureDefault,

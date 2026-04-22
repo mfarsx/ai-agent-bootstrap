@@ -10,6 +10,18 @@ const MEMORY_BANK_FILES = [
   "progress.md",
 ];
 
+const WORKFLOW_SLUGS = [
+  "checkpoint",
+  "cleanup",
+  "commit",
+  "init-memory",
+  "plan",
+  "review",
+  "status",
+  "stuck",
+  "update-memory",
+];
+
 const SHARED_RULE_FILES = [
   "00-memory-bank.md",
   "01-coding-standards.md",
@@ -24,51 +36,6 @@ const CURSOR_RULE_FILES = [
   "03-boundaries.mdc",
 ];
 
-const CURSOR_SKILL_NAMES = [
-  "checkpoint",
-  "cleanup",
-  "commit",
-  "init-memory",
-  "plan",
-  "review",
-  "status",
-  "stuck",
-  "update-memory",
-];
-
-const CLINE_WORKFLOW_FILES = [
-  "checkpoint.md",
-  "cleanup.md",
-  "commit.md",
-  "init-memory.md",
-  "plan.md",
-  "review.md",
-  "status.md",
-  "stuck.md",
-  "update-memory.md",
-];
-
-const WORKFLOW_SLUGS = [
-  "checkpoint",
-  "cleanup",
-  "commit",
-  "init-memory",
-  "plan",
-  "review",
-  "status",
-  "stuck",
-  "update-memory",
-];
-
-
-function createMemoryBankFiles() {
-  return MEMORY_BANK_FILES.map((file) => ({
-    source: `memory-bank/${file}`,
-    target: `memory-bank/${file}`,
-    sourceProvider: "shared",
-  }));
-}
-
 function createGitignoreEntries(files) {
   return files.map((file) => {
     const target = file.target;
@@ -76,68 +43,125 @@ function createGitignoreEntries(files) {
   });
 }
 
-const CLINE_FILES = [
-  ...createMemoryBankFiles(),
-  { source: "AGENTS.md", target: "AGENTS.md" },
-  ...SHARED_RULE_FILES.map((file) => ({
-    source: `.clinerules/${file}`,
-    target: `.clinerules/${file}`,
-  })),
-  ...CLINE_WORKFLOW_FILES.map((file) => ({
-    source: `.clinerules/workflows/${file}`,
-    target: `.clinerules/workflows/${file}`,
-  })),
-  { source: ".clineignore", target: ".clineignore" },
-];
+function memoryBankFiles({
+  contextPath = "memory-bank",
+  sourcePath = "memory-bank",
+  sourceProvider = "shared",
+} = {}) {
+  return MEMORY_BANK_FILES.map((file) => {
+    const entry = {
+      source: `${sourcePath}/${file}`,
+      target: `${contextPath}/${file}`,
+    };
+    if (sourceProvider) {
+      entry.sourceProvider = sourceProvider;
+    }
+    return entry;
+  });
+}
 
-const CURSOR_FILES = [
-  ...createMemoryBankFiles(),
-  { source: "AGENTS.md", target: "AGENTS.md" },
-  { source: ".cursor/index.mdc", target: ".cursor/index.mdc" },
-  ...CURSOR_RULE_FILES.map((file) => ({
-    source: `.cursor/rules/${file}`,
-    target: `.cursor/rules/${file}`,
-  })),
-  ...CURSOR_SKILL_NAMES.map((slug) => ({
-    source: `.cursor/skills/${slug}/SKILL.md`,
-    target: `.cursor/skills/${slug}/SKILL.md`,
-  })),
-  { source: ".cursorignore", target: ".cursorignore" },
-];
+function rulesFiles(rulesPath, ruleFiles) {
+  return ruleFiles.map((file) => ({
+    source: `${rulesPath}/${file}`,
+    target: `${rulesPath}/${file}`,
+  }));
+}
 
-const OPENCLAW_FILES = [
-  ...createMemoryBankFiles(),
-  { source: "AGENTS.md", target: "AGENTS.md" },
-  { source: "IDENTITY.md", target: "IDENTITY.md" },
-  { source: "SOUL.md", target: "SOUL.md" },
-  { source: "USER.md", target: "USER.md" },
-];
+function workflowFiles({ path, slugs, buildFilename }) {
+  return slugs.map((slug) => {
+    const filename = buildFilename(slug);
+    return {
+      source: `${path}/${filename}`,
+      target: `${path}/${filename}`,
+    };
+  });
+}
 
-const WINDSURF_FILES = [
-  ...createMemoryBankFiles(),
-  { source: "AGENTS.md", target: "AGENTS.md" },
-  ...SHARED_RULE_FILES.map((file) => ({
-    source: `.windsurf/rules/${file}`,
-    target: `.windsurf/rules/${file}`,
-  })),
-  ...WORKFLOW_SLUGS.map((slug) => ({
-    source: `.windsurf/workflows/${slug}.md`,
-    target: `.windsurf/workflows/${slug}.md`,
-  })),
-  { source: ".windsurfignore", target: ".windsurfignore" },
-];
+function buildProviderManifest({
+  memoryBankSource = "shared",
+  contextPath = "memory-bank",
+  rules,
+  workflows,
+  extras = [],
+  ignoreFile,
+}) {
+  const files = [
+    ...memoryBankFiles({ contextPath, sourceProvider: memoryBankSource }),
+  ];
+
+  files.push({ source: "AGENTS.md", target: "AGENTS.md" });
+
+  for (const extra of extras) {
+    files.push(extra);
+  }
+
+  if (rules) {
+    files.push(...rulesFiles(rules.path, rules.files));
+  }
+
+  if (workflows) {
+    files.push(...workflowFiles(workflows));
+  }
+
+  if (ignoreFile) {
+    files.push({ source: ignoreFile, target: ignoreFile });
+  }
+
+  return files;
+}
+
+const CLINE_FILES = buildProviderManifest({
+  rules: { path: ".clinerules", files: SHARED_RULE_FILES },
+  workflows: {
+    path: ".clinerules/workflows",
+    slugs: WORKFLOW_SLUGS,
+    buildFilename: (slug) => `${slug}.md`,
+  },
+  ignoreFile: ".clineignore",
+});
+
+const CURSOR_FILES = buildProviderManifest({
+  extras: [{ source: ".cursor/index.mdc", target: ".cursor/index.mdc" }],
+  rules: { path: ".cursor/rules", files: CURSOR_RULE_FILES },
+  workflows: {
+    path: ".cursor/skills",
+    slugs: WORKFLOW_SLUGS,
+    buildFilename: (slug) => `${slug}/SKILL.md`,
+  },
+  ignoreFile: ".cursorignore",
+});
+
+const OPENCLAW_FILES = buildProviderManifest({
+  extras: [
+    { source: "IDENTITY.md", target: "IDENTITY.md" },
+    { source: "SOUL.md", target: "SOUL.md" },
+    { source: "USER.md", target: "USER.md" },
+  ],
+});
+
+const WINDSURF_FILES = buildProviderManifest({
+  rules: { path: ".windsurf/rules", files: SHARED_RULE_FILES },
+  workflows: {
+    path: ".windsurf/workflows",
+    slugs: WORKFLOW_SLUGS,
+    buildFilename: (slug) => `${slug}.md`,
+  },
+  ignoreFile: ".windsurfignore",
+});
 
 const CLAUDE_CODE_FILES = [
   { source: "AGENTS.md", target: "AGENTS.md" },
   { source: "CLAUDE.md", target: "CLAUDE.md" },
-  ...WORKFLOW_SLUGS.map((slug) => ({
-    source: `.claude/commands/${slug}.md`,
-    target: `.claude/commands/${slug}.md`,
-  })),
-  ...MEMORY_BANK_FILES.map((file) => ({
-    source: `docs/context/${file}`,
-    target: `docs/context/${file}`,
-  })),
+  ...workflowFiles({
+    path: ".claude/commands",
+    slugs: WORKFLOW_SLUGS,
+    buildFilename: (slug) => `${slug}.md`,
+  }),
+  ...memoryBankFiles({
+    contextPath: "docs/context",
+    sourcePath: "docs/context",
+    sourceProvider: null,
+  }),
 ];
 
 const PROVIDERS = {
@@ -147,8 +171,15 @@ const PROVIDERS = {
     templateDir: "cline",
     contextPath: "memory-bank",
     rulesPath: ".clinerules",
+    workflowsPath: ".clinerules/workflows",
+    workflowFilenamePattern: "<slug>.md",
+    workflowSlugs: WORKFLOW_SLUGS,
     files: CLINE_FILES,
     gitignoreEntries: createGitignoreEntries(CLINE_FILES),
+    detectionTargets: [
+      ".clinerules/00-memory-bank.md",
+      ".clinerules/workflows/init-memory.md",
+    ],
     workflows: {
       initMemory: { command: "/init-memory", hint: "in Cline chat" },
       updateMemory: { command: "/update-memory", hint: "in Cline chat" },
@@ -160,8 +191,12 @@ const PROVIDERS = {
     templateDir: "cursor",
     contextPath: "memory-bank",
     rulesPath: ".cursor/rules",
+    workflowsPath: ".cursor/skills",
+    workflowFilenamePattern: "<slug>/SKILL.md",
+    workflowSlugs: WORKFLOW_SLUGS,
     files: CURSOR_FILES,
     gitignoreEntries: createGitignoreEntries(CURSOR_FILES),
+    detectionTargets: [".cursor/index.mdc", ".cursor/rules/00-memory-bank.mdc"],
     workflows: {
       initMemory: { command: "/init-memory", hint: "in Cursor chat" },
       updateMemory: { command: "/update-memory", hint: "in Cursor chat" },
@@ -174,6 +209,7 @@ const PROVIDERS = {
     contextPath: "memory-bank",
     files: OPENCLAW_FILES,
     gitignoreEntries: createGitignoreEntries(OPENCLAW_FILES),
+    detectionTargets: ["IDENTITY.md", "SOUL.md"],
   },
   windsurf: {
     label: "Windsurf",
@@ -181,8 +217,15 @@ const PROVIDERS = {
     templateDir: "windsurf",
     contextPath: "memory-bank",
     rulesPath: ".windsurf/rules",
+    workflowsPath: ".windsurf/workflows",
+    workflowFilenamePattern: "<slug>.md",
+    workflowSlugs: WORKFLOW_SLUGS,
     files: WINDSURF_FILES,
     gitignoreEntries: createGitignoreEntries(WINDSURF_FILES),
+    detectionTargets: [
+      ".windsurf/rules/00-memory-bank.md",
+      ".windsurf/workflows/init-memory.md",
+    ],
     workflows: {
       initMemory: { command: "/init-memory", hint: "in Windsurf chat" },
       updateMemory: { command: "/update-memory", hint: "in Windsurf chat" },
@@ -193,8 +236,12 @@ const PROVIDERS = {
     ready: true,
     templateDir: "claude-code",
     contextPath: "docs/context",
+    workflowsPath: ".claude/commands",
+    workflowFilenamePattern: "<slug>.md",
+    workflowSlugs: WORKFLOW_SLUGS,
     files: CLAUDE_CODE_FILES,
     gitignoreEntries: createGitignoreEntries(CLAUDE_CODE_FILES),
+    detectionTargets: ["CLAUDE.md", ".claude/commands/init-memory.md"],
     workflows: {
       initMemory: { command: "/init-memory", hint: "in Claude Code" },
       updateMemory: { command: "/update-memory", hint: "in Claude Code" },
@@ -225,15 +272,21 @@ function validateProviderDefinition(
   }
 
   if (typeof provider.ready !== "boolean") {
-    errors.push(`Provider "${providerName}" must define a boolean "ready" flag.`);
+    errors.push(
+      `Provider "${providerName}" must define a boolean "ready" flag.`,
+    );
   }
 
   if (!provider.templateDir || typeof provider.templateDir !== "string") {
-    errors.push(`Provider "${providerName}" must define a valid "templateDir".`);
+    errors.push(
+      `Provider "${providerName}" must define a valid "templateDir".`,
+    );
   }
 
   if (!Array.isArray(provider.files) || provider.files.length === 0) {
-    errors.push(`Provider "${providerName}" must define at least one file mapping.`);
+    errors.push(
+      `Provider "${providerName}" must define at least one file mapping.`,
+    );
     return errors;
   }
 
@@ -334,7 +387,7 @@ function getProvider(name) {
 
   if (!provider) {
     const error = new Error(
-      `Unknown provider \"${name}\". Use one of: ${getProviderNames().join(", ")}`,
+      `Unknown provider "${name}". Use one of: ${getProviderNames().join(", ")}`,
     );
     error.code = "UNKNOWN_PROVIDER";
     throw error;
@@ -349,6 +402,10 @@ function getProviderNames() {
 
 function getReadyProviderNames() {
   return getProviderNames().filter((name) => PROVIDERS[name].ready);
+}
+
+function getReadyProviders() {
+  return getReadyProviderNames().map((name) => getProvider(name));
 }
 
 function getProviderPromptChoices() {
@@ -407,6 +464,7 @@ module.exports = {
   getProvider,
   getProviderNames,
   getProviderPromptChoices,
+  getReadyProviders,
   getReadyProviderNames,
   getExpectedFiles,
   resolveTemplatePath,

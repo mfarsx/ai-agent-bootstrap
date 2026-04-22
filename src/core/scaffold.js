@@ -2,56 +2,64 @@ const path = require("path");
 const fs = require("./fs-helpers");
 const { resolveTemplatePath } = require("../providers");
 const { renderTemplateFile } = require("./template");
+const { applyRenderPlan } = require("./apply-plan");
 
 async function resolveFileItems(targetDir, provider, data) {
-  const items = [];
+  return Promise.all(
+    provider.files.map(async (file) => {
+      const targetFile = path.join(targetDir, file.target);
+      const templateFile = resolveTemplatePath(provider, file);
+      const [rendered, exists] = await Promise.all([
+        renderTemplateFile(templateFile, data),
+        fs.pathExists(targetFile),
+      ]);
+      const currentContent = exists
+        ? await fs.readFile(targetFile, "utf-8")
+        : null;
 
-  for (const file of provider.files) {
-    const targetFile = path.join(targetDir, file.target);
-    const templateFile = resolveTemplatePath(provider, file);
-    const rendered = await renderTemplateFile(templateFile, data);
-    const exists = await fs.pathExists(targetFile);
-    const currentContent = exists
-      ? await fs.readFile(targetFile, "utf-8")
-      : null;
-
-    items.push({
-      target: file.target,
-      targetFile,
-      rendered,
-      exists,
-      currentContent,
-    });
-  }
-
-  return items;
+      return {
+        target: file.target,
+        targetFile,
+        rendered,
+        exists,
+        currentContent,
+      };
+    }),
+  );
 }
 
 async function scaffoldProviderFiles(targetDir, provider, data, options = {}) {
   const dryRun = Boolean(options.dryRun);
   const items = await resolveFileItems(targetDir, provider, data);
-  let created = 0;
   let wouldCreate = 0;
-  let skipped = 0;
   const fileResults = [];
+  let created = 0;
+  let skipped = 0;
 
-  for (const item of items) {
-    if (item.exists) {
-      skipped++;
-      fileResults.push({ target: item.target, status: "skipped" });
-      continue;
+  if (dryRun) {
+    for (const item of items) {
+      if (item.exists) {
+        fileResults.push({ target: item.target, status: "skipped" });
+      } else {
+        wouldCreate++;
+        fileResults.push({ target: item.target, status: "would_create" });
+      }
     }
+  } else {
+    const writeResult = await applyRenderPlan(items, {
+      overwrite: false,
+      parallel: true,
+    });
+    created = writeResult.created;
+    skipped = writeResult.skipped;
 
-    if (dryRun) {
-      wouldCreate++;
-      fileResults.push({ target: item.target, status: "would_create" });
-      continue;
+    for (const item of items) {
+      if (item.exists) {
+        fileResults.push({ target: item.target, status: "skipped" });
+      } else {
+        fileResults.push({ target: item.target, status: "created" });
+      }
     }
-
-    await fs.ensureDir(path.dirname(item.targetFile));
-    await fs.writeFile(item.targetFile, item.rendered, "utf-8");
-    created++;
-    fileResults.push({ target: item.target, status: "created" });
   }
 
   return { created, skipped, wouldCreate, dryRun, fileResults };

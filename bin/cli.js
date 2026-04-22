@@ -11,13 +11,14 @@ if (nodeMajorVersion < 18) {
 const { program } = require("commander");
 const chalk = require("chalk");
 const { version, description } = require("../package.json");
+const { CancelledError } = require("../src/core/cli-errors");
 const {
   DEFAULT_PROVIDER,
   getProvider,
   getProviderNames,
 } = require("../src/providers");
 
-program.name("ai-bootstrap").description(description).version(version);
+program.name("ai-agent-bootstrap").description(description).version(version);
 
 const providerNames = getProviderNames();
 const providerHelpText = `Provider/interface (${providerNames.join(", ")})`;
@@ -37,8 +38,10 @@ function normalizeOptions(options = {}) {
     throw error;
   }
 
-  const provider = getProvider(normalized.provider || DEFAULT_PROVIDER);
-  normalized.provider = provider.name;
+  if (normalized.provider) {
+    const provider = getProvider(normalized.provider);
+    normalized.provider = provider.name;
+  }
 
   return normalized;
 }
@@ -46,45 +49,36 @@ function normalizeOptions(options = {}) {
 const ERROR_CODE_MAP = {
   INVALID_TARGET_DIR: "invalid target dir",
   UNKNOWN_PROVIDER: "unknown provider",
+  AMBIGUOUS_PROVIDER: "ambiguous provider",
   PROVIDER_NOT_READY: "provider not ready",
   MISSING_TEMPLATE_SOURCE: "missing template file",
   RESET_CONFIRM_NEEDS_YES: "reset error",
+  CANCELLED: null,
   EACCES: "permission denied",
   EPERM: "permission denied",
 };
 
 function classifyError(error) {
-  if (!error || typeof error.message !== "string") {
+  if (!error) {
     return "runtime error";
   }
 
-  const code = error.code || "";
+  const code = error.code;
 
-  if (ERROR_CODE_MAP[code]) {
+  if (code && ERROR_CODE_MAP[code]) {
     return ERROR_CODE_MAP[code];
   }
 
-  if (String(code).startsWith("CONFIG_")) {
-    return "config error";
+  if (code === "ENOENT") {
+    return "missing file";
   }
 
-  if (/Unknown provider/i.test(error.message)) {
-    return "unknown provider";
-  }
-  if (/templates are not ready/i.test(error.message)) {
-    return "provider not ready";
-  }
-  if (
-    /ENOENT/i.test(error.message) ||
-    /missing template source/i.test(error.message)
-  ) {
-    return "missing template file";
-  }
-  if (
-    /EACCES|EPERM/i.test(error.message) ||
-    /permission denied/i.test(error.message)
-  ) {
+  if (code === "EACCES" || code === "EPERM") {
     return "permission denied";
+  }
+
+  if (typeof code === "string" && code.startsWith("CONFIG_")) {
+    return "config error";
   }
 
   return "runtime error";
@@ -105,6 +99,10 @@ function runCommand(handler) {
       const normalizedOptions = normalizeOptions(options);
       await handler(...positionalArgs, normalizedOptions);
     } catch (error) {
+      if (error instanceof CancelledError || error.code === "CANCELLED") {
+        process.exit(0);
+      }
+
       console.error(chalk.red(formatCliError(error)));
       process.exit(1);
     }
@@ -115,18 +113,17 @@ program
   .command("init [provider]")
   .description("Initialize AI agent base files in the current project")
   .option("-d, --dir <path>", "Target directory", ".")
-  .option("-p, --provider <name>", providerHelpText, DEFAULT_PROVIDER)
+  .option("-p, --provider <name>", providerHelpText)
   .option("-y, --yes", "Skip prompts and use defaults")
+  .option("--force", "Bypass initialized-directory checks and re-run prompts")
+  .option("--verbose", "Show full file-level output, including skipped files")
+  .option("--quiet", "Print compact output when nothing changed")
   .option("--dry-run", "List files that would be created without writing")
   .option("--config <path>", "Path to JSON config file")
-  .option("--var <keyvalue...>", "Template variable overrides (KEY=VALUE)")
   .action(
     runCommand(async (provider, options) => {
       if (provider) options.provider = provider;
-      if (options.var) {
-        options.templateVariables = options.var;
-      }
-      const { initProject } = require("../src/init");
+      const { initProject } = require("../src/commands/init");
       await initProject(options);
     }),
   );
@@ -139,7 +136,7 @@ program
   .action(
     runCommand(async (provider, options) => {
       if (provider) options.provider = provider;
-      const { checkStatus } = require("../src/status");
+      const { checkStatus } = require("../src/commands/status");
       await checkStatus(options);
     }),
   );
@@ -152,10 +149,11 @@ program
   .option("-y, --yes", "Skip confirmation prompt")
   .option("--dry-run", "Preview diff without writing")
   .option("--config <path>", "Path to JSON config file")
+  .option("--prompt", "Re-ask project questions before resetting")
   .action(
     runCommand(async (provider, options) => {
       if (provider) options.provider = provider;
-      const { resetProject } = require("../src/reset");
+      const { resetProject } = require("../src/commands/reset");
       await resetProject(options);
     }),
   );

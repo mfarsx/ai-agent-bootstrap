@@ -1,7 +1,7 @@
 /**
  * Replace template placeholders with actual values.
  * Placeholders use {{KEY}} syntax.
- * `data.templateVariables` overrides built-in keys (e.g. from --var or config).
+ * `data.templateVariables` overrides built-in keys (e.g. from config inputs).
  */
 function fillTemplate(content, data) {
   const builtInValues = {
@@ -34,19 +34,14 @@ function formatExtras(extras) {
   return extras.map((e) => `- ${e}`).join("\n");
 }
 
+const TOKEN_PATTERN = /\{\{(\w+)\}\}/g;
+
 function replaceTokens(content, values) {
-  let output = content;
-
-  for (const [key, value] of Object.entries(values)) {
-    const token = new RegExp(`\\{\\{${escapeRegex(key)}\\}\\}`, "g");
-    output = output.replace(token, value ?? "");
-  }
-
-  return output;
-}
-
-function escapeRegex(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return content.replace(TOKEN_PATTERN, (match, key) =>
+    Object.prototype.hasOwnProperty.call(values, key)
+      ? (values[key] ?? "")
+      : match,
+  );
 }
 
 module.exports = { fillTemplate };

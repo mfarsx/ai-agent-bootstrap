@@ -10,6 +10,8 @@ function printHeader(targetDir, subtitle) {
 
 function printFileResults(fileResults, options = {}) {
   const dryRun = Boolean(options.dryRun);
+  const verbose = Boolean(options.verbose);
+  let skippedCount = 0;
 
   for (const entry of fileResults) {
     if (entry.status === "created") {
@@ -22,7 +24,18 @@ function printFileResults(fileResults, options = {}) {
       continue;
     }
 
-    console.log(chalk.yellow(`  ⏭  ${entry.target} (already exists)`));
+    skippedCount += 1;
+    if (verbose) {
+      console.log(chalk.gray.dim(`  ⏭  ${entry.target} (already exists)`));
+    }
+  }
+
+  if (!verbose && skippedCount > 0) {
+    const skipLabel = skippedCount === 1 ? "file" : "files";
+    const statusLabel = dryRun ? "already present" : "unchanged";
+    console.log(
+      chalk.gray.dim(`  ⏭  ${skippedCount} ${skipLabel} ${statusLabel}`),
+    );
   }
 }
 
@@ -33,11 +46,13 @@ function printGitignoreResult(gitignoreResult, options = {}) {
     const verb = dryRun ? "would be added" : "added";
     const color = dryRun ? chalk.cyan : chalk.green;
     const icon = dryRun ? "◆" : "✔";
-    console.log(color(`  ${icon}  .gitignore (${gitignoreResult.added} entries ${verb})`));
+    console.log(
+      color(`  ${icon}  .gitignore (${gitignoreResult.added} entries ${verb})`),
+    );
     return;
   }
 
-  console.log(chalk.yellow("  ⏭  .gitignore (already up to date)"));
+  console.log(chalk.gray.dim("  ⏭  .gitignore (already up to date)"));
 }
 
 module.exports = {

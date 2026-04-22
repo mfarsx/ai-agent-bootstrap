@@ -5,6 +5,7 @@ const { createTwoFilesPatch } = require("diff");
 const prompts = require("prompts");
 const { collectInitData } = require("./init");
 const { buildProviderRenderPlan } = require("../core/scaffold");
+const { applyRenderPlan } = require("../core/apply-plan");
 const {
   getGitignoreMergePlan,
   mergeGitignoreEntries,
@@ -79,10 +80,22 @@ async function resetProject(options = {}) {
   const targetDir = path.resolve(options.dir || ".");
   const dryRun = Boolean(options.dryRun);
   const yes = Boolean(options.yes);
+  const interactive = Boolean(options.prompt);
 
   printHeader(targetDir, "reset");
 
-  const { provider, answers } = await collectInitData(targetDir, options);
+  if (!interactive && !options.config && !options.loadedConfig) {
+    console.log(
+      chalk.gray(
+        "ℹ reset uses defaults; pass --prompt to re-answer questions or --config <file> to load values from a config.\n",
+      ),
+    );
+  }
+
+  const { provider, answers } = await collectInitData(targetDir, {
+    ...options,
+    interactive,
+  });
   const planItems = await buildProviderRenderPlan(targetDir, provider, answers);
 
   const fileChanges = [];
@@ -136,24 +149,9 @@ async function resetProject(options = {}) {
     }
   }
 
-  let created = 0;
-  let overwritten = 0;
-  let unchanged = 0;
-  for (const item of planItems) {
-    if (item.exists && item.currentContent === item.rendered) {
-      unchanged++;
-      continue;
-    }
-
-    if (!item.exists) {
-      created++;
-    } else {
-      overwritten++;
-    }
-
-    await fs.ensureDir(path.dirname(item.targetFile));
-    await fs.writeFile(item.targetFile, item.rendered, "utf-8");
-  }
+  const { created, overwritten, unchanged } = await applyRenderPlan(planItems, {
+    overwrite: true,
+  });
 
   await mergeGitignoreEntries(targetDir, provider.gitignoreEntries);
 

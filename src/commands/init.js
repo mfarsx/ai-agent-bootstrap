@@ -1,87 +1,99 @@
 const path = require("path");
 const chalk = require("chalk");
-const { askQuestions, getDefaults, applyStackDerivedDefaults } = require("../prompts");
+const {
+  askQuestions,
+  getDefaults,
+  applyStackDerivedDefaults,
+} = require("../prompts");
 const { DEFAULT_PROVIDER, assertProviderReady } = require("../providers");
-const { mergeGitignoreEntries, previewGitignoreMerge } = require("../gitignore");
+const {
+  mergeGitignoreEntries,
+  previewGitignoreMerge,
+} = require("../gitignore");
 const { scaffoldProviderFiles } = require("../core/scaffold");
+const {
+  analyzeTargetDir,
+  analyzeProviderStates,
+} = require("../core/init-analyzer");
 const { loadInitConfig, resolveInitConfigPath } = require("../core/config");
 const { buildTemplateContext } = require("../core/template-context");
 const { printHeader, printFileResults, printGitignoreResult } = require("./ui");
-
-function isFreshMemoryBank(provider, fileResults) {
-  const contextPrefix = provider.contextPath + "/";
-  const contextResults = fileResults.filter((r) => r.target.startsWith(contextPrefix));
-  if (contextResults.length === 0) return true;
-  return contextResults.every((r) => r.status === "created");
-}
-
-function buildMemoryStep(provider, fileResults) {
-  const workflows = provider.workflows || {};
-  const fresh = isFreshMemoryBank(provider, fileResults);
-
-  if (fresh && workflows.initMemory) {
-    return `Run ${chalk.bold(workflows.initMemory.command)} ${workflows.initMemory.hint} to populate ${provider.contextPath}`;
-  }
-
-  if (!fresh && workflows.updateMemory) {
-    return `Run ${chalk.bold(workflows.updateMemory.command)} ${workflows.updateMemory.hint} to sync ${provider.contextPath} with current project state`;
-  }
-
-  if (fresh) {
-    return `Fill in the ${provider.contextPath}/ files with your project details`;
-  }
-
-  return `Review and update ${provider.contextPath}/ files to reflect current project state`;
-}
-
-function printNextSteps(provider, scaffoldResult) {
-  const steps = [buildMemoryStep(provider, scaffoldResult.fileResults)];
-
-  if (provider.rulesPath) {
-    steps.push(`Review ${provider.rulesPath} and adjust to your workflow`);
-  }
-
-  steps.push("Start your AI agent — it will read these files automatically");
-
-  console.log(chalk.gray("Next steps:"));
-  steps.forEach((step, index) => {
-    console.log(chalk.gray(`  ${index + 1}. ${step}`));
-  });
-  console.log();
-}
+const {
+  printAlreadyInitialized,
+  printPartialDetected,
+  printProviderActionSuggestions,
+  printNextSteps,
+  collectWorkflowCommands,
+  buildQuickDocGroups,
+} = require("./init-ui");
+const {
+  getInstalledFlowActionChoices,
+  getInitNewProviderChoices,
+  promptForAmbiguousProvider,
+  promptForInstalledProviderFlow,
+} = require("./init-flow");
 
 async function collectInitData(targetDir, options) {
-  const configPath = await resolveInitConfigPath(targetDir, options.config);
-  const loadedConfig = await loadInitConfig(configPath);
-  const mergedConfigContext = { ...loadedConfig.context, ...options.configContext };
-  const mergedConfigVars = options.configVariables || loadedConfig.templateVariables;
-  const selectedProvider = assertProviderReady(options.provider || DEFAULT_PROVIDER, {
-    checkTemplateSources: true,
-  });
+  const configPath =
+    options.configPath ||
+    (await resolveInitConfigPath(targetDir, options.config));
+  const loadedConfig =
+    options.loadedConfig || (await loadInitConfig(configPath));
+  const mergedConfigContext = {
+    ...loadedConfig.context,
+    ...options.configContext,
+  };
+  const mergedConfigVars =
+    options.configVariables || loadedConfig.templateVariables;
+  const selectedProvider = assertProviderReady(
+    options.provider || mergedConfigContext.provider || DEFAULT_PROVIDER,
+    {
+      checkTemplateSources: true,
+    },
+  );
+  const interactive =
+    options.interactive !== undefined
+      ? Boolean(options.interactive)
+      : !options.yes && process.stdin.isTTY;
+
   const defaultContext = {
     ...getDefaults(targetDir),
     provider: selectedProvider.name,
   };
-  const usePromptDefaults = Boolean(options.yes) || !process.stdin.isTTY;
-  const promptContext = usePromptDefaults
-    ? defaultContext
-    : await askQuestions(targetDir, defaultContext);
+
+  let promptContext = defaultContext;
+  let touchedByPrompt = new Set();
+  if (interactive) {
+    const { answers, touched } = await askQuestions(targetDir, defaultContext);
+    promptContext = answers;
+    touchedByPrompt = touched;
+  }
+
+  const cliContext = options.contextOverrides || {};
+  const customFields = new Set([
+    ...touchedByPrompt,
+    ...Object.keys(mergedConfigContext),
+    ...Object.keys(cliContext),
+  ]);
 
   const context = buildTemplateContext({
     baseContext: defaultContext,
     promptContext,
     configContext: mergedConfigContext,
-    cliContext: options.contextOverrides || {},
+    cliContext,
     defaultTemplateVariables: defaultContext.templateVariables,
     configTemplateVariables: mergedConfigVars,
     cliTemplateVariables: options.templateVariables || {},
   });
 
-  applyStackDerivedDefaults(context);
+  applyStackDerivedDefaults(context, { customFields });
 
-  const provider = assertProviderReady(context.provider || selectedProvider.name, {
-    checkTemplateSources: true,
-  });
+  const provider = assertProviderReady(
+    context.provider || selectedProvider.name,
+    {
+      checkTemplateSources: true,
+    },
+  );
 
   return { provider, answers: context };
 }
@@ -89,18 +101,109 @@ async function collectInitData(targetDir, options) {
 async function initProject(options = {}) {
   const targetDir = path.resolve(options.dir || ".");
   const dryRun = Boolean(options.dryRun);
+  const verbose = Boolean(options.verbose);
+  const force = Boolean(options.force);
+  const quiet = Boolean(options.quiet);
+  let bypassFullEarlyExit = false;
+  let providerChosenFromInstalledFlow = false;
+  let prebuiltStates = null;
+
   printHeader(targetDir);
 
   if (dryRun) {
     console.log(chalk.gray("Dry run — no files will be written.\n"));
   }
 
-  const { provider, answers } = await collectInitData(targetDir, options);
-  const scaffoldResult = await scaffoldProviderFiles(targetDir, provider, answers, {
-    dryRun,
+  const configPath = await resolveInitConfigPath(targetDir, options.config);
+  const loadedConfig = await loadInitConfig(configPath);
+  const explicitProvider = Boolean(
+    options.provider || loadedConfig.context.provider,
+  );
+  let selectedProvider =
+    options.provider || loadedConfig.context.provider || null;
+
+  if (!explicitProvider && !force) {
+    const providerState = await analyzeProviderStates(targetDir);
+    prebuiltStates = providerState.states;
+    if (providerState.installedProviderNames.length > 0) {
+      if (!options.yes && process.stdin.isTTY) {
+        const selection = await promptForInstalledProviderFlow(
+          providerState.installedProviderNames,
+        );
+
+        if (selection.action === "exit") {
+          console.log(chalk.gray("\nℹ Exited without changes.\n"));
+          return;
+        }
+
+        selectedProvider = selection.provider;
+        providerChosenFromInstalledFlow = true;
+        const installedSet = new Set(providerState.installedProviderNames);
+        if (selection.action === "update-existing") {
+          bypassFullEarlyExit = true;
+        } else if (selection.action === "init-new") {
+          bypassFullEarlyExit = installedSet.has(selection.provider);
+        }
+      } else {
+        printProviderActionSuggestions(providerState.installedProviderNames);
+        return;
+      }
+    }
+  }
+
+  let analysis = await analyzeTargetDir(targetDir, {
+    providerHint: selectedProvider,
+    prebuiltStates,
   });
 
-  printFileResults(scaffoldResult.fileResults, { dryRun });
+  if (!force && analysis.status === "ambiguous") {
+    if (options.yes || !process.stdin.isTTY) {
+      const error = new Error(
+        `Multiple provider footprints detected (${analysis.candidates.join(
+          ", ",
+        )}). Re-run with -p <provider>.`,
+      );
+      error.code = "AMBIGUOUS_PROVIDER";
+      throw error;
+    }
+
+    selectedProvider = await promptForAmbiguousProvider(analysis.candidates);
+    analysis = await analyzeTargetDir(targetDir, {
+      providerHint: selectedProvider,
+      prebuiltStates,
+    });
+  }
+
+  if (!force && !bypassFullEarlyExit && analysis.status === "full") {
+    printAlreadyInitialized(targetDir, analysis);
+    return;
+  }
+
+  if (!force && analysis.status === "partial") {
+    printPartialDetected(analysis);
+  }
+
+  const shouldUsePrompts =
+    !providerChosenFromInstalledFlow &&
+    (force || analysis.status === "fresh" || analysis.status === "ambiguous");
+
+  const { provider, answers } = await collectInitData(targetDir, {
+    ...options,
+    provider: selectedProvider || (analysis.provider && analysis.provider.name),
+    configPath,
+    loadedConfig,
+    interactive: shouldUsePrompts && !options.yes && process.stdin.isTTY,
+  });
+  const scaffoldResult = await scaffoldProviderFiles(
+    targetDir,
+    provider,
+    answers,
+    {
+      dryRun,
+    },
+  );
+
+  printFileResults(scaffoldResult.fileResults, { dryRun, verbose });
 
   const gitignoreResult = dryRun
     ? await previewGitignoreMerge(targetDir, provider.gitignoreEntries)
@@ -117,6 +220,14 @@ async function initProject(options = {}) {
     return;
   }
 
+  const nothingChanged =
+    scaffoldResult.created === 0 && gitignoreResult.added === 0;
+
+  if (quiet && nothingChanged) {
+    console.log(chalk.cyan("\n✨ In sync. No changes applied.\n"));
+    return;
+  }
+
   console.log(
     chalk.cyan(
       `\n✨ Done! ${scaffoldResult.created} files created, ${scaffoldResult.skipped} skipped.\n`,
@@ -129,4 +240,11 @@ async function initProject(options = {}) {
 module.exports = {
   initProject,
   collectInitData,
+  printAlreadyInitialized,
+  printPartialDetected,
+  printProviderActionSuggestions,
+  getInstalledFlowActionChoices,
+  getInitNewProviderChoices,
+  collectWorkflowCommands,
+  buildQuickDocGroups,
 };
