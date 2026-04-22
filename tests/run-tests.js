@@ -3,10 +3,18 @@ const assert = require("assert");
 const suites = [
   require("./providers.test"),
   require("./template-context.test"),
+  require("./stack-defaults.test"),
   require("./utils.test"),
+  require("./prompts.test"),
+  require("./init-ui.test"),
+  require("./apply-plan.test"),
+  require("./init-analyzer.test"),
+  require("./scaffold-parallel.test"),
+  require("./template-cache.test"),
   require("./init.test"),
   require("./update.test"),
   require("./status.test"),
+  require("./cancellation.test"),
   require("./cli.test"),
 ];
 

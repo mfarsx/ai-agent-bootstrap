@@ -1,12 +1,12 @@
 const path = require("path");
 const fs = require("../src/core/fs-helpers");
-const { initProject } = require("../src/init");
-const { resetProject } = require("../src/reset");
+const { initProject } = require("../src/commands/init");
+const { resetProject } = require("../src/commands/reset");
 const { withTempDir, captureConsole, runCli } = require("./helpers");
 
 module.exports = async function registerUpdateTests({ test, assert }) {
   test("resetProject dry-run prints diff when a file drifts", async () => {
-    await withTempDir("ai-bootstrap-reset-preview-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-reset-preview-", async (targetDir) => {
       await captureConsole(() =>
         initProject({ dir: targetDir, yes: true, provider: "cline" }),
       );
@@ -34,7 +34,7 @@ module.exports = async function registerUpdateTests({ test, assert }) {
   });
 
   test("resetProject restores template output by default", async () => {
-    await withTempDir("ai-bootstrap-reset-write-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-reset-write-", async (targetDir) => {
       await captureConsole(() =>
         initProject({ dir: targetDir, yes: true, provider: "cline" }),
       );
@@ -57,7 +57,7 @@ module.exports = async function registerUpdateTests({ test, assert }) {
   });
 
   test("cli reset without --yes fails when stdin is not a TTY", async () => {
-    await withTempDir("ai-bootstrap-reset-tty-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-reset-tty-", async (targetDir) => {
       await runCli(
         ["init", "--provider", "cline", "--yes", "--dir", targetDir],
         { cwd: targetDir },

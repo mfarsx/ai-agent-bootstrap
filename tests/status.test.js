@@ -1,12 +1,12 @@
 const path = require("path");
 const fs = require("../src/core/fs-helpers");
-const { checkStatus } = require("../src/status");
+const { checkStatus } = require("../src/commands/status");
 const { getExpectedFiles } = require("../src/providers");
 const { withTempDir, captureConsole } = require("./helpers");
 
 module.exports = async function registerStatusTests({ test, assert }) {
   test("checkStatus reports all files missing in empty directory", async () => {
-    await withTempDir("ai-bootstrap-status-empty-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-status-empty-", async (targetDir) => {
       const total = getExpectedFiles("cline").length;
       const output = await captureConsole(() =>
         checkStatus({ dir: targetDir }),
@@ -15,13 +15,13 @@ module.exports = async function registerStatusTests({ test, assert }) {
 
       assert.ok(text.includes(`📊 0/${total} files found.`));
       assert.ok(text.includes("Run"));
-      assert.ok(text.includes("ai-bootstrap init"));
+      assert.ok(text.includes("ai-agent-bootstrap init"));
       assert.ok(text.includes("create missing files"));
     });
   });
 
   test("checkStatus reports partial coverage correctly", async () => {
-    await withTempDir("ai-bootstrap-status-partial-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-status-partial-", async (targetDir) => {
       const total = getExpectedFiles("cline").length;
       await fs.ensureDir(path.join(targetDir, "memory-bank"));
       await fs.writeFile(
@@ -43,7 +43,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
   });
 
   test("checkStatus reports success when all required files exist", async () => {
-    await withTempDir("ai-bootstrap-status-full-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-status-full-", async (targetDir) => {
       const files = getExpectedFiles("cline");
 
       for (const relativeFile of files) {
@@ -65,7 +65,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
   });
 
   test("checkStatus reports cursor provider file totals", async () => {
-    await withTempDir("ai-bootstrap-status-cursor-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-status-cursor-", async (targetDir) => {
       const total = getExpectedFiles("cursor").length;
       await fs.ensureDir(path.join(targetDir, "memory-bank"));
       await fs.writeFile(
@@ -92,7 +92,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
   });
 
   test("checkStatus reports claude-code provider file totals", async () => {
-    await withTempDir("ai-bootstrap-status-claude-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-status-claude-", async (targetDir) => {
       await fs.ensureDir(path.join(targetDir, "docs", "context"));
       await fs.writeFile(
         path.join(targetDir, "docs", "context", "projectbrief.md"),
@@ -113,7 +113,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
   });
 
   test("checkStatus reports openclaw provider file totals", async () => {
-    await withTempDir("ai-bootstrap-status-openclaw-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-status-openclaw-", async (targetDir) => {
       await fs.ensureDir(path.join(targetDir, "memory-bank"));
       await fs.writeFile(
         path.join(targetDir, "memory-bank", "projectbrief.md"),
@@ -134,7 +134,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
   });
 
   test("checkStatus reports windsurf provider file totals", async () => {
-    await withTempDir("ai-bootstrap-status-windsurf-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-status-windsurf-", async (targetDir) => {
       await fs.ensureDir(path.join(targetDir, "memory-bank"));
       await fs.writeFile(
         path.join(targetDir, "memory-bank", "projectbrief.md"),
@@ -160,7 +160,7 @@ module.exports = async function registerStatusTests({ test, assert }) {
   });
 
   test("checkStatus returns structured report contract", async () => {
-    await withTempDir("ai-bootstrap-status-contract-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-status-contract-", async (targetDir) => {
       await fs.ensureDir(path.join(targetDir, "memory-bank"));
       await fs.writeFile(
         path.join(targetDir, "memory-bank", "projectbrief.md"),

@@ -1,8 +1,13 @@
 const path = require("path");
 const nodeFs = require("fs");
+const prompts = require("prompts");
 const fs = require("../src/core/fs-helpers");
-const { initProject } = require("../src/init");
-const { collectInitData } = require("../src/commands/init");
+const {
+  initProject,
+  collectInitData,
+  getInstalledFlowActionChoices,
+  getInitNewProviderChoices,
+} = require("../src/commands/init");
 const { withTempDir, captureConsole } = require("./helpers");
 
 const EXPECTED_FILES = [
@@ -69,7 +74,7 @@ const WINDSURF_SENTINEL_FILES = [
 
 module.exports = async function registerInitTests({ test, assert }) {
   test("initProject dryRun does not create files", async () => {
-    await withTempDir("ai-bootstrap-dry-run-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-dry-run-", async (targetDir) => {
       await captureConsole(() =>
         initProject({ dir: targetDir, yes: true, dryRun: true }),
       );
@@ -84,7 +89,7 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject creates all baseline files in a fresh target", async () => {
-    await withTempDir("ai-bootstrap-init-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-init-", async (targetDir) => {
       await captureConsole(() => initProject({ dir: targetDir, yes: true }));
 
       for (const relativeFile of EXPECTED_FILES) {
@@ -99,7 +104,7 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject skips existing files and preserves user edits", async () => {
-    await withTempDir("ai-bootstrap-retry-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-retry-", async (targetDir) => {
       const customFile = path.join(targetDir, "memory-bank", "projectbrief.md");
       await fs.ensureDir(path.dirname(customFile));
       await fs.writeFile(customFile, "custom content", "utf-8");
@@ -111,32 +116,299 @@ module.exports = async function registerInitTests({ test, assert }) {
     });
   });
 
-  test("initProject appends missing AI entries into existing .gitignore", async () => {
-    await withTempDir("ai-bootstrap-gitignore-merge-", async (targetDir) => {
-      const gitignorePath = path.join(targetDir, ".gitignore");
+  test("initProject exits early when directory is fully initialized", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-full-early-exit-",
+      async (targetDir) => {
+        await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+
+        const rerunOutput = await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cline" }),
+        );
+        const text = rerunOutput.logs.join("\n");
+
+        assert.ok(text.includes("already initialized for Cline"));
+        assert.ok(text.includes("Nothing to do"));
+        assert.ok(text.includes("init --force"));
+        assert.strictEqual(/Done!/.test(text), false);
+      },
+    );
+  });
+
+  test("initProject --force bypasses early exit and completes run", async () => {
+    await withTempDir("ai-agent-bootstrap-force-rerun-", async (targetDir) => {
+      await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+
+      const rerunOutput = await captureConsole(() =>
+        initProject({ dir: targetDir, yes: true, force: true }),
+      );
+      const text = rerunOutput.logs.join("\n");
+
+      assert.ok(text.includes("Done! 0 files created"));
+      assert.ok(text.includes("files unchanged"));
+    });
+  });
+
+  test("initProject completes partial init without prompts", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-partial-rerun-",
+      async (targetDir) => {
+        const partialFiles = [
+          "memory-bank/projectbrief.md",
+          "memory-bank/productContext.md",
+          "AGENTS.md",
+          ".windsurf/rules/00-memory-bank.md",
+          ".windsurf/workflows/init-memory.md",
+        ];
+
+        for (const relativeFile of partialFiles) {
+          const fullPath = path.join(targetDir, relativeFile);
+          await fs.ensureDir(path.dirname(fullPath));
+          await fs.writeFile(fullPath, "existing", "utf-8");
+        }
+
+        const output = await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
+        );
+        const text = output.logs.join("\n");
+
+        assert.ok(text.includes("Windsurf is partially initialized"));
+        assert.strictEqual(
+          await fs.pathExists(path.join(targetDir, ".windsurfignore")),
+          true,
+        );
+        assert.ok(text.includes("Done!"));
+      },
+    );
+  });
+
+  test("initProject suggests provider actions when provider is not specified", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-autodetect-provider-",
+      async (targetDir) => {
+        await fs.ensureDir(path.join(targetDir, ".cursor", "rules"));
+        await fs.writeFile(
+          path.join(targetDir, ".cursor", "index.mdc"),
+          "existing",
+          "utf-8",
+        );
+        await fs.writeFile(
+          path.join(targetDir, ".cursor", "rules", "00-memory-bank.mdc"),
+          "existing",
+          "utf-8",
+        );
+
+        const output = await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true }),
+        );
+        const text = output.logs.join("\n");
+
+        assert.ok(text.includes("Detected installed providers"));
+        assert.ok(text.includes("modify Cursor setup"));
+        assert.ok(text.includes("install Windsurf setup"));
+      },
+    );
+  });
+
+  test("initProject interactive flow supports updating existing installed provider", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-update-existing-flow-",
+      async (targetDir) => {
+        await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cline" }),
+        );
+
+        const originalIsTTY = process.stdin.isTTY;
+        process.stdin.isTTY = true;
+        prompts.inject(["update-existing", "cline"]);
+
+        try {
+          const output = await captureConsole(() =>
+            initProject({ dir: targetDir }),
+          );
+          const text = output.logs.join("\n");
+          assert.ok(text.includes("Done!"));
+          assert.ok(text.includes("0 files created"));
+        } finally {
+          process.stdin.isTTY = originalIsTTY;
+        }
+      },
+    );
+  });
+
+  test("initProject interactive flow supports back navigation in update menu", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-update-back-flow-",
+      async (targetDir) => {
+        await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cline" }),
+        );
+
+        const originalIsTTY = process.stdin.isTTY;
+        process.stdin.isTTY = true;
+        prompts.inject(["update-existing", "__back", "exit"]);
+
+        try {
+          const output = await captureConsole(() =>
+            initProject({ dir: targetDir }),
+          );
+          const text = output.logs.join("\n");
+          assert.ok(text.includes("Exited without changes"));
+        } finally {
+          process.stdin.isTTY = originalIsTTY;
+        }
+      },
+    );
+  });
+
+  test("initProject interactive flow supports init new setup selection", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-init-new-flow-",
+      async (targetDir) => {
+        await fs.ensureDir(path.join(targetDir, ".cursor", "rules"));
+        await fs.writeFile(
+          path.join(targetDir, ".cursor", "index.mdc"),
+          "existing",
+          "utf-8",
+        );
+        await fs.writeFile(
+          path.join(targetDir, ".cursor", "rules", "00-memory-bank.mdc"),
+          "existing",
+          "utf-8",
+        );
+
+        const originalIsTTY = process.stdin.isTTY;
+        process.stdin.isTTY = true;
+        prompts.inject(["init-new", "windsurf"]);
+
+        try {
+          await captureConsole(() => initProject({ dir: targetDir }));
+        } finally {
+          process.stdin.isTTY = originalIsTTY;
+        }
+
+        assert.strictEqual(
+          await fs.pathExists(
+            path.join(targetDir, ".windsurf", "rules", "00-memory-bank.md"),
+          ),
+          true,
+        );
+      },
+    );
+  });
+
+  test("init flow action choices hide init-new when all providers are installed", () => {
+    const allInstalled = ["cline", "cursor", "openclaw", "windsurf", "claude-code"];
+    const actions = getInstalledFlowActionChoices(allInstalled).map(
+      (choice) => choice.value,
+    );
+
+    assert.deepStrictEqual(actions, ["update-existing", "exit"]);
+  });
+
+  test("init-new provider choices exclude already installed providers", () => {
+    const choices = getInitNewProviderChoices(["cline", "cursor"]).map(
+      (choice) => choice.value,
+    );
+
+    assert.strictEqual(choices.includes("cline"), false);
+    assert.strictEqual(choices.includes("cursor"), false);
+    assert.ok(choices.includes("windsurf"));
+    assert.ok(choices.includes("openclaw"));
+  });
+
+  test("initProject interactive flow exits cleanly when user chooses exit", async () => {
+    await withTempDir("ai-agent-bootstrap-exit-flow-", async (targetDir) => {
+      await fs.ensureDir(path.join(targetDir, ".cursor", "rules"));
       await fs.writeFile(
-        gitignorePath,
-        "node_modules/\ncustom.log\nmemory-bank/projectbrief.md\n",
+        path.join(targetDir, ".cursor", "index.mdc"),
+        "existing",
+        "utf-8",
+      );
+      await fs.writeFile(
+        path.join(targetDir, ".cursor", "rules", "00-memory-bank.mdc"),
+        "existing",
         "utf-8",
       );
 
-      await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+      const originalIsTTY = process.stdin.isTTY;
+      process.stdin.isTTY = true;
+      prompts.inject(["exit"]);
 
-      const content = await fs.readFile(gitignorePath, "utf-8");
-      assert.ok(content.includes("custom.log"));
-      assert.ok(content.includes(".clinerules/00-memory-bank.md"));
+      try {
+        const output = await captureConsole(() =>
+          initProject({ dir: targetDir }),
+        );
+        const text = output.logs.join("\n");
+        assert.ok(text.includes("Exited without changes"));
+      } finally {
+        process.stdin.isTTY = originalIsTTY;
+      }
 
-      const entries = content.split(/\r?\n/);
-      const projectBriefEntries = entries.filter(
-        (entry) => entry.trim() === "memory-bank/projectbrief.md",
+      assert.strictEqual(
+        await fs.pathExists(
+          path.join(targetDir, ".windsurf", "rules", "00-memory-bank.md"),
+        ),
+        false,
       );
-      assert.strictEqual(projectBriefEntries.length, 1);
     });
+  });
+
+  test("initProject supports verbose output for skipped files", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-verbose-skips-",
+      async (targetDir) => {
+        await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+        const output = await captureConsole(() =>
+          initProject({
+            dir: targetDir,
+            yes: true,
+            force: true,
+            verbose: true,
+          }),
+        );
+        const text = output.logs.join("\n");
+
+        assert.ok(
+          text.includes("memory-bank/projectbrief.md (already exists)"),
+        );
+        assert.ok(
+          text.includes(".clinerules/00-memory-bank.md (already exists)"),
+        );
+        assert.strictEqual(text.includes("files unchanged"), false);
+      },
+    );
+  });
+
+  test("initProject appends missing AI entries into existing .gitignore", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-gitignore-merge-",
+      async (targetDir) => {
+        const gitignorePath = path.join(targetDir, ".gitignore");
+        await fs.writeFile(
+          gitignorePath,
+          "node_modules/\ncustom.log\nmemory-bank/projectbrief.md\n",
+          "utf-8",
+        );
+
+        await captureConsole(() => initProject({ dir: targetDir, yes: true }));
+
+        const content = await fs.readFile(gitignorePath, "utf-8");
+        assert.ok(content.includes("custom.log"));
+        assert.ok(content.includes(".clinerules/00-memory-bank.md"));
+
+        const entries = content.split(/\r?\n/);
+        const projectBriefEntries = entries.filter(
+          (entry) => entry.trim() === "memory-bank/projectbrief.md",
+        );
+        assert.strictEqual(projectBriefEntries.length, 1);
+      },
+    );
   });
 
   test("initProject keeps .gitignore entries idempotent across reruns", async () => {
     await withTempDir(
-      "ai-bootstrap-gitignore-idempotent-",
+      "ai-agent-bootstrap-gitignore-idempotent-",
       async (targetDir) => {
         await captureConsole(() => initProject({ dir: targetDir, yes: true }));
         await captureConsole(() => initProject({ dir: targetDir, yes: true }));
@@ -155,7 +427,7 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject supports relative nested paths with spaces", async () => {
-    await withTempDir("ai-bootstrap-path-", async (baseDir) => {
+    await withTempDir("ai-agent-bootstrap-path-", async (baseDir) => {
       const nestedTarget = path.join(baseDir, "my app", "deep project");
       const relativeDir = path.relative(process.cwd(), nestedTarget);
 
@@ -172,7 +444,7 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject creates cursor provider files", async () => {
-    await withTempDir("ai-bootstrap-cursor-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-cursor-", async (targetDir) => {
       await captureConsole(() =>
         initProject({ dir: targetDir, yes: true, provider: "cursor" }),
       );
@@ -196,7 +468,7 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject creates claude-code provider files", async () => {
-    await withTempDir("ai-bootstrap-claude-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-claude-", async (targetDir) => {
       await captureConsole(() =>
         initProject({ dir: targetDir, yes: true, provider: "claude-code" }),
       );
@@ -255,46 +527,58 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject ignore files include shared baseline entries", async () => {
-    await withTempDir("ai-bootstrap-ignore-baseline-", async (targetDir) => {
-      await captureConsole(() =>
-        initProject({ dir: targetDir, yes: true, provider: "cline" }),
-      );
-      const cline = await fs.readFile(
-        path.join(targetDir, ".clineignore"),
-        "utf-8",
-      );
-      assert.ok(cline.includes(".venv/"), ".clineignore should include .venv/");
-      assert.ok(cline.includes("__pycache__/"));
-      assert.ok(cline.includes(".DS_Store"));
-    });
+    await withTempDir(
+      "ai-agent-bootstrap-ignore-baseline-",
+      async (targetDir) => {
+        await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cline" }),
+        );
+        const cline = await fs.readFile(
+          path.join(targetDir, ".clineignore"),
+          "utf-8",
+        );
+        assert.ok(
+          cline.includes(".venv/"),
+          ".clineignore should include .venv/",
+        );
+        assert.ok(cline.includes("__pycache__/"));
+        assert.ok(cline.includes(".DS_Store"));
+      },
+    );
 
-    await withTempDir("ai-bootstrap-cursor-ignore-", async (targetDir) => {
-      await captureConsole(() =>
-        initProject({ dir: targetDir, yes: true, provider: "cursor" }),
-      );
-      const cursorIgnore = await fs.readFile(
-        path.join(targetDir, ".cursorignore"),
-        "utf-8",
-      );
-      assert.ok(cursorIgnore.includes("node_modules/"));
-      assert.ok(cursorIgnore.includes(".env"));
-    });
+    await withTempDir(
+      "ai-agent-bootstrap-cursor-ignore-",
+      async (targetDir) => {
+        await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cursor" }),
+        );
+        const cursorIgnore = await fs.readFile(
+          path.join(targetDir, ".cursorignore"),
+          "utf-8",
+        );
+        assert.ok(cursorIgnore.includes("node_modules/"));
+        assert.ok(cursorIgnore.includes(".env"));
+      },
+    );
 
-    await withTempDir("ai-bootstrap-windsurf-ignore-", async (targetDir) => {
-      await captureConsole(() =>
-        initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
-      );
-      const windsurfIgnore = await fs.readFile(
-        path.join(targetDir, ".windsurfignore"),
-        "utf-8",
-      );
-      assert.ok(windsurfIgnore.includes("dist/"));
-      assert.ok(windsurfIgnore.includes("target/"));
-    });
+    await withTempDir(
+      "ai-agent-bootstrap-windsurf-ignore-",
+      async (targetDir) => {
+        await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
+        );
+        const windsurfIgnore = await fs.readFile(
+          path.join(targetDir, ".windsurfignore"),
+          "utf-8",
+        );
+        assert.ok(windsurfIgnore.includes("dist/"));
+        assert.ok(windsurfIgnore.includes("target/"));
+      },
+    );
   });
 
   test("initProject creates openclaw provider files", async () => {
-    await withTempDir("ai-bootstrap-openclaw-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-openclaw-", async (targetDir) => {
       await captureConsole(() =>
         initProject({ dir: targetDir, yes: true, provider: "openclaw" }),
       );
@@ -311,7 +595,7 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject creates windsurf provider files", async () => {
-    await withTempDir("ai-bootstrap-windsurf-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-windsurf-", async (targetDir) => {
       await captureConsole(() =>
         initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
       );
@@ -328,7 +612,7 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject propagates permissions-related filesystem errors", async () => {
-    await withTempDir("ai-bootstrap-eacces-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-eacces-", async (targetDir) => {
       const originalEnsureDir = fs.ensureDir;
       fs.ensureDir = async () => {
         const error = new Error("EACCES: permission denied");
@@ -348,45 +632,53 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject fails fast when ready provider template sources are invalid", async () => {
-    await withTempDir("ai-bootstrap-invalid-template-", async (targetDir) => {
-      const originalExistsSync = nodeFs.existsSync;
-      const originalWriteFile = fs.writeFile;
-      let writeCalled = false;
+    await withTempDir(
+      "ai-agent-bootstrap-invalid-template-",
+      async (targetDir) => {
+        const originalExistsSync = nodeFs.existsSync;
+        const originalWriteFile = fs.writeFile;
+        let writeCalled = false;
 
-      nodeFs.existsSync = (filePath) => {
-        if (
-          String(filePath).includes(
-            path.join("templates", "shared", "memory-bank", "projectbrief.md"),
-          )
-        ) {
-          return false;
+        nodeFs.existsSync = (filePath) => {
+          if (
+            String(filePath).includes(
+              path.join(
+                "templates",
+                "shared",
+                "memory-bank",
+                "projectbrief.md",
+              ),
+            )
+          ) {
+            return false;
+          }
+          return originalExistsSync(filePath);
+        };
+
+        fs.writeFile = async (...args) => {
+          writeCalled = true;
+          return originalWriteFile(...args);
+        };
+
+        try {
+          await assert.rejects(
+            () =>
+              captureConsole(() =>
+                initProject({ dir: targetDir, yes: true, provider: "cline" }),
+              ),
+            /Manifest validation failed[\s\S]*missing template source/,
+          );
+          assert.strictEqual(writeCalled, false);
+        } finally {
+          nodeFs.existsSync = originalExistsSync;
+          fs.writeFile = originalWriteFile;
         }
-        return originalExistsSync(filePath);
-      };
-
-      fs.writeFile = async (...args) => {
-        writeCalled = true;
-        return originalWriteFile(...args);
-      };
-
-      try {
-        await assert.rejects(
-          () =>
-            captureConsole(() =>
-              initProject({ dir: targetDir, yes: true, provider: "cline" }),
-            ),
-          /Manifest validation failed[\s\S]*missing template source/,
-        );
-        assert.strictEqual(writeCalled, false);
-      } finally {
-        nodeFs.existsSync = originalExistsSync;
-        fs.writeFile = originalWriteFile;
-      }
-    });
+      },
+    );
   });
 
   test("initProject replaces command placeholders for providers with AGENTS.md", async () => {
-    await withTempDir("ai-bootstrap-placeholder-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-placeholder-", async (targetDir) => {
       await captureConsole(() =>
         initProject({ dir: targetDir, yes: true, provider: "cursor" }),
       );
@@ -402,22 +694,25 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("initProject prints provider-specific memory-bank prompt in next steps", async () => {
-    await withTempDir("ai-bootstrap-next-steps-prompt-", async (targetDir) => {
-      const output = await captureConsole(() =>
-        initProject({ dir: targetDir, yes: true, provider: "cursor" }),
-      );
+    await withTempDir(
+      "ai-agent-bootstrap-next-steps-prompt-",
+      async (targetDir) => {
+        const output = await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cursor" }),
+        );
 
-      const text = output.logs.join("\n");
-      assert.ok(
-        text.includes("/init-memory") && text.includes("in Cursor chat"),
-        "fresh cursor init should suggest /init-memory in Cursor chat",
-      );
-    });
+        const text = output.logs.join("\n");
+        assert.ok(
+          text.includes("/init-memory") && text.includes("in Cursor chat"),
+          "fresh cursor init should suggest /init-memory in Cursor chat",
+        );
+      },
+    );
   });
 
   test("initProject prints init-memory hint for windsurf and claude-code", async () => {
     await withTempDir(
-      "ai-bootstrap-next-steps-windsurf-",
+      "ai-agent-bootstrap-next-steps-windsurf-",
       async (targetDir) => {
         const output = await captureConsole(() =>
           initProject({ dir: targetDir, yes: true, provider: "windsurf" }),
@@ -430,20 +725,117 @@ module.exports = async function registerInitTests({ test, assert }) {
       },
     );
 
-    await withTempDir("ai-bootstrap-next-steps-claude-", async (targetDir) => {
-      const output = await captureConsole(() =>
-        initProject({ dir: targetDir, yes: true, provider: "claude-code" }),
-      );
-      const text = output.logs.join("\n");
-      assert.ok(
-        text.includes("/init-memory") && text.includes("in Claude Code"),
-        "claude-code init should suggest /init-memory in Claude Code",
-      );
-    });
+    await withTempDir(
+      "ai-agent-bootstrap-next-steps-claude-",
+      async (targetDir) => {
+        const output = await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "claude-code" }),
+        );
+        const text = output.logs.join("\n");
+        assert.ok(
+          text.includes("/init-memory") && text.includes("in Claude Code"),
+          "claude-code init should suggest /init-memory in Claude Code",
+        );
+      },
+    );
+  });
+
+  test("initProject rerun prints update-memory hint in next steps", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-next-steps-update-memory-",
+      async (targetDir) => {
+        await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cursor" }),
+        );
+
+        const output = await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cursor", force: true }),
+        );
+
+        const text = output.logs.join("\n");
+        assert.ok(
+          text.includes("/update-memory") && text.includes("in Cursor chat"),
+          "rerun should suggest /update-memory in Cursor chat",
+        );
+      },
+    );
+  });
+
+  test("initProject prints grouped quick doc with Memory/Workflow/Utility labels", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-next-steps-quick-doc-",
+      async (targetDir) => {
+        const output = await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cursor" }),
+        );
+        const text = output.logs.join("\n");
+
+        assert.ok(text.includes("Quick Doc"));
+        assert.ok(text.includes("in Cursor chat"));
+        assert.ok(text.includes("Memory"));
+        assert.ok(text.includes("Workflow"));
+        assert.ok(text.includes("Utility"));
+        assert.ok(text.includes("/plan"));
+        assert.ok(text.includes("/review"));
+        assert.ok(text.includes("/commit"));
+        assert.strictEqual(
+          /Tip: run \/plan before multi-file changes/.test(text),
+          false,
+          "the generic tip line should be removed from quick doc",
+        );
+      },
+    );
+  });
+
+  test("initProject --quiet prints compact in-sync summary on no-op rerun", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-quiet-in-sync-",
+      async (targetDir) => {
+        await captureConsole(() =>
+          initProject({ dir: targetDir, yes: true, provider: "cline" }),
+        );
+
+        const rerunOutput = await captureConsole(() =>
+          initProject({
+            dir: targetDir,
+            yes: true,
+            provider: "cline",
+            force: true,
+            quiet: true,
+          }),
+        );
+        const text = rerunOutput.logs.join("\n");
+
+        assert.ok(text.includes("In sync. No changes applied."));
+        assert.strictEqual(/Next steps:/.test(text), false);
+        assert.strictEqual(/Quick Doc/.test(text), false);
+      },
+    );
+  });
+
+  test("initProject --quiet still prints next steps when files were created", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-quiet-with-changes-",
+      async (targetDir) => {
+        const output = await captureConsole(() =>
+          initProject({
+            dir: targetDir,
+            yes: true,
+            provider: "cline",
+            quiet: true,
+          }),
+        );
+        const text = output.logs.join("\n");
+
+        assert.ok(text.includes("Done!"));
+        assert.ok(text.includes("Next steps:"));
+        assert.ok(text.includes("Quick Doc"));
+      },
+    );
   });
 
   test("collectInitData applies context/template variable precedence seams", async () => {
-    await withTempDir("ai-bootstrap-context-seam-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-context-seam-", async (targetDir) => {
       const { provider, answers } = await collectInitData(targetDir, {
         yes: true,
         provider: "cline",
@@ -462,26 +854,29 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("collectInitData accepts KEY=VALUE template variables array", async () => {
-    await withTempDir("ai-bootstrap-context-array-", async (targetDir) => {
-      const { answers } = await collectInitData(targetDir, {
-        yes: true,
-        provider: "cline",
-        templateVariables: [
-          "owner_name=cli-team",
-          "build_command=npm run build",
-        ],
-      });
+    await withTempDir(
+      "ai-agent-bootstrap-context-array-",
+      async (targetDir) => {
+        const { answers } = await collectInitData(targetDir, {
+          yes: true,
+          provider: "cline",
+          templateVariables: [
+            "owner_name=cli-team",
+            "build_command=npm run build",
+          ],
+        });
 
-      assert.deepStrictEqual(answers.templateVariables, {
-        OWNER_NAME: "cli-team",
-        BUILD_COMMAND: "npm run build",
-      });
-    });
+        assert.deepStrictEqual(answers.templateVariables, {
+          OWNER_NAME: "cli-team",
+          BUILD_COMMAND: "npm run build",
+        });
+      },
+    );
   });
 
   test("collectInitData ignores invalid KEY=VALUE template variable forms", async () => {
     await withTempDir(
-      "ai-bootstrap-context-invalid-vars-",
+      "ai-agent-bootstrap-context-invalid-vars-",
       async (targetDir) => {
         const { answers } = await collectInitData(targetDir, {
           yes: true,
@@ -498,7 +893,7 @@ module.exports = async function registerInitTests({ test, assert }) {
 
   test("collectInitData uses last-write-wins for duplicate template variable keys", async () => {
     await withTempDir(
-      "ai-bootstrap-context-duplicate-vars-",
+      "ai-agent-bootstrap-context-duplicate-vars-",
       async (targetDir) => {
         const { answers } = await collectInitData(targetDir, {
           yes: true,
@@ -518,7 +913,7 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("collectInitData derives non-Node project structure for Python stack", async () => {
-    await withTempDir("ai-bootstrap-stack-python-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-stack-python-", async (targetDir) => {
       const { answers } = await collectInitData(targetDir, {
         yes: true,
         provider: "cline",
@@ -544,59 +939,65 @@ module.exports = async function registerInitTests({ test, assert }) {
   });
 
   test("collectInitData auto-loads bootstrap.config.json from target directory", async () => {
-    await withTempDir("ai-bootstrap-config-autoload-", async (targetDir) => {
-      await fs.writeFile(
-        path.join(targetDir, "bootstrap.config.json"),
-        JSON.stringify({
-          context: {
-            provider: "cursor",
-          },
-        }),
-        "utf-8",
-      );
+    await withTempDir(
+      "ai-agent-bootstrap-config-autoload-",
+      async (targetDir) => {
+        await fs.writeFile(
+          path.join(targetDir, "bootstrap.config.json"),
+          JSON.stringify({
+            context: {
+              provider: "cursor",
+            },
+          }),
+          "utf-8",
+        );
 
-      const { provider } = await collectInitData(targetDir, {
-        yes: true,
-        provider: "cline",
-      });
+        const { provider } = await collectInitData(targetDir, {
+          yes: true,
+          provider: "cline",
+        });
 
-      assert.strictEqual(provider.name, "cursor");
-    });
+        assert.strictEqual(provider.name, "cursor");
+      },
+    );
   });
 
-  test("collectInitData loads config context and variables with --var precedence", async () => {
-    await withTempDir("ai-bootstrap-context-config-", async (targetDir) => {
-      const configPath = path.join(targetDir, "bootstrap.config.json");
-      await fs.writeFile(
-        configPath,
-        JSON.stringify(
-          {
-            context: {
-              provider: "windsurf",
-              stack: "TypeScript",
+  test("collectInitData loads config context and variables with template variable precedence", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-context-config-",
+      async (targetDir) => {
+        const configPath = path.join(targetDir, "bootstrap.config.json");
+        await fs.writeFile(
+          configPath,
+          JSON.stringify(
+            {
+              context: {
+                provider: "windsurf",
+                stack: "TypeScript",
+              },
+              templateVariables: {
+                OWNER_NAME: "config-team",
+              },
             },
-            templateVariables: {
-              OWNER_NAME: "config-team",
-            },
-          },
-          null,
-          2,
-        ),
-        "utf-8",
-      );
+            null,
+            2,
+          ),
+          "utf-8",
+        );
 
-      const { provider, answers } = await collectInitData(targetDir, {
-        yes: true,
-        provider: "cline",
-        config: configPath,
-        templateVariables: ["owner_name=cli-team"],
-      });
+        const { provider, answers } = await collectInitData(targetDir, {
+          yes: true,
+          provider: "cline",
+          config: configPath,
+          templateVariables: ["owner_name=cli-team"],
+        });
 
-      assert.strictEqual(provider.name, "windsurf");
-      assert.strictEqual(answers.stack, "TypeScript");
-      assert.deepStrictEqual(answers.templateVariables, {
-        OWNER_NAME: "cli-team",
-      });
-    });
+        assert.strictEqual(provider.name, "windsurf");
+        assert.strictEqual(answers.stack, "TypeScript");
+        assert.deepStrictEqual(answers.templateVariables, {
+          OWNER_NAME: "cli-team",
+        });
+      },
+    );
   });
 };

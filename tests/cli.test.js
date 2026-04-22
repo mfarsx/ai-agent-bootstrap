@@ -4,7 +4,7 @@ const { withTempDir, runCli, runNodeScript } = require("./helpers");
 
 module.exports = async function registerCliTests({ test, assert }) {
   test("cli init succeeds with a valid provider", async () => {
-    await withTempDir("ai-bootstrap-cli-init-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-cli-init-", async (targetDir) => {
       const result = await runCli(
         ["init", "--provider", "cline", "--yes", "--dir", targetDir],
         { cwd: targetDir },
@@ -28,7 +28,7 @@ module.exports = async function registerCliTests({ test, assert }) {
   });
 
   test("cli status succeeds with a valid provider", async () => {
-    await withTempDir("ai-bootstrap-cli-status-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-cli-status-", async (targetDir) => {
       await fs.ensureDir(path.join(targetDir, "memory-bank"));
       await fs.writeFile(
         path.join(targetDir, "memory-bank", "projectbrief.md"),
@@ -47,7 +47,7 @@ module.exports = async function registerCliTests({ test, assert }) {
   });
 
   test("cli init exits with code 1 for unknown provider", async () => {
-    await withTempDir("ai-bootstrap-cli-bad-init-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-cli-bad-init-", async (targetDir) => {
       const result = await runCli(
         ["init", "--provider", "nope", "--yes", "--dir", targetDir],
         { cwd: targetDir },
@@ -65,20 +65,23 @@ module.exports = async function registerCliTests({ test, assert }) {
   });
 
   test("cli status exits with code 1 for unknown provider", async () => {
-    await withTempDir("ai-bootstrap-cli-bad-status-", async (targetDir) => {
-      const result = await runCli(
-        ["status", "--provider", "nope", "--dir", targetDir],
-        { cwd: targetDir },
-      );
+    await withTempDir(
+      "ai-agent-bootstrap-cli-bad-status-",
+      async (targetDir) => {
+        const result = await runCli(
+          ["status", "--provider", "nope", "--dir", targetDir],
+          { cwd: targetDir },
+        );
 
-      assert.strictEqual(result.code, 1);
-      assert.ok(result.stderr.includes("unknown provider:"));
-      assert.ok(result.stderr.includes("Unknown provider"));
-    });
+        assert.strictEqual(result.code, 1);
+        assert.ok(result.stderr.includes("unknown provider:"));
+        assert.ok(result.stderr.includes("Unknown provider"));
+      },
+    );
   });
 
   test("cli provider input is case-insensitive", async () => {
-    await withTempDir("ai-bootstrap-cli-case-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-cli-case-", async (targetDir) => {
       const result = await runCli(
         ["init", "--provider", "CURSOR", "--yes", "--dir", targetDir],
         { cwd: targetDir },
@@ -119,8 +122,8 @@ module.exports = async function registerCliTests({ test, assert }) {
     assert.ok(result.stderr.includes("Invalid target dir"));
   });
 
-  test("cli init accepts repeatable --var template overrides", async () => {
-    await withTempDir("ai-bootstrap-cli-vars-", async (targetDir) => {
+  test("cli init rejects removed --var option", async () => {
+    await withTempDir("ai-agent-bootstrap-cli-vars-", async (targetDir) => {
       const result = await runCli(
         [
           "init",
@@ -131,25 +134,17 @@ module.exports = async function registerCliTests({ test, assert }) {
           targetDir,
           "--var",
           "owner_name=platform",
-          "--var",
-          "build_command=npm run build",
         ],
         { cwd: targetDir },
       );
 
-      assert.strictEqual(result.code, 0);
-      assert.ok(result.stdout.includes("Done!"));
-      assert.strictEqual(
-        await fs.pathExists(
-          path.join(targetDir, "memory-bank", "projectbrief.md"),
-        ),
-        true,
-      );
+      assert.notStrictEqual(result.code, 0);
+      assert.ok(result.stderr.includes("unknown option '--var'"));
     });
   });
 
   test("cli init --dry-run does not write files", async () => {
-    await withTempDir("ai-bootstrap-cli-dry-run-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-cli-dry-run-", async (targetDir) => {
       const result = await runCli(
         [
           "init",
@@ -177,9 +172,136 @@ module.exports = async function registerCliTests({ test, assert }) {
     });
   });
 
+  test("cli init without provider shows modify/install suggestions for installed providers", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-cli-init-full-",
+      async (targetDir) => {
+        await runCli(
+          ["init", "--provider", "cline", "--yes", "--dir", targetDir],
+          {
+            cwd: targetDir,
+          },
+        );
+
+        const rerun = await runCli(["init", "--yes", "--dir", targetDir], {
+          cwd: targetDir,
+        });
+
+        assert.strictEqual(rerun.code, 0);
+        assert.ok(rerun.stdout.includes("Detected installed providers"));
+        assert.ok(rerun.stdout.includes("modify Cline setup"));
+        assert.ok(rerun.stdout.includes("install Windsurf setup"));
+      },
+    );
+  });
+
+  test("cli init exits early for fully initialized directory when provider is explicit", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-cli-init-full-explicit-",
+      async (targetDir) => {
+        await runCli(
+          ["init", "--provider", "cline", "--yes", "--dir", targetDir],
+          {
+            cwd: targetDir,
+          },
+        );
+
+        const rerun = await runCli(
+          ["init", "--provider", "cline", "--yes", "--dir", targetDir],
+          {
+            cwd: targetDir,
+          },
+        );
+
+        assert.strictEqual(rerun.code, 0);
+        assert.ok(rerun.stdout.includes("already initialized for Cline"));
+        assert.ok(rerun.stdout.includes("ai-agent-bootstrap status"));
+        assert.ok(rerun.stdout.includes("ai-agent-bootstrap init --force"));
+      },
+    );
+  });
+
+  test("cli init --force overrides early exit behavior", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-cli-init-force-",
+      async (targetDir) => {
+        await runCli(
+          ["init", "--provider", "cline", "--yes", "--dir", targetDir],
+          {
+            cwd: targetDir,
+          },
+        );
+
+        const rerun = await runCli(
+          ["init", "--yes", "--force", "--dir", targetDir],
+          {
+            cwd: targetDir,
+          },
+        );
+
+        assert.strictEqual(rerun.code, 0);
+        assert.ok(rerun.stdout.includes("Done! 0 files created"));
+      },
+    );
+  });
+
+  test("cli init --verbose shows per-file skip output", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-cli-init-verbose-",
+      async (targetDir) => {
+        await runCli(
+          ["init", "--provider", "cline", "--yes", "--dir", targetDir],
+          {
+            cwd: targetDir,
+          },
+        );
+
+        const rerun = await runCli(
+          ["init", "--yes", "--force", "--verbose", "--dir", targetDir],
+          { cwd: targetDir },
+        );
+
+        assert.strictEqual(rerun.code, 0);
+        assert.ok(
+          rerun.stdout.includes("memory-bank/projectbrief.md (already exists)"),
+        );
+        assert.strictEqual(rerun.stdout.includes("files unchanged"), false);
+      },
+    );
+  });
+
+  test("cli init suggests provider actions in non-interactive mode for mixed provider footprints", async () => {
+    await withTempDir(
+      "ai-agent-bootstrap-cli-init-ambiguous-",
+      async (targetDir) => {
+        await fs.ensureDir(path.join(targetDir, ".clinerules"));
+        await fs.writeFile(
+          path.join(targetDir, ".clinerules", "00-memory-bank.md"),
+          "ok",
+          "utf-8",
+        );
+        await fs.ensureDir(path.join(targetDir, ".cursor"));
+        await fs.writeFile(
+          path.join(targetDir, ".cursor", "index.mdc"),
+          "ok",
+          "utf-8",
+        );
+
+        const result = await runCli(["init", "--yes", "--dir", targetDir], {
+          cwd: targetDir,
+        });
+
+        assert.strictEqual(result.code, 0);
+        assert.ok(result.stdout.includes("Detected installed providers"));
+        assert.ok(result.stdout.includes("modify Cline setup"));
+        assert.ok(result.stdout.includes("modify Cursor setup"));
+      },
+    );
+  });
+
   test("cli init auto-discovers bootstrap.config.json in target dir without --config", async () => {
     await withTempDir(
-      "ai-bootstrap-cli-config-autodetect-",
+      "ai-agent-bootstrap-cli-config-autodetect-",
       async (targetDir) => {
         await fs.writeFile(
           path.join(targetDir, "bootstrap.config.json"),
@@ -210,7 +332,7 @@ module.exports = async function registerCliTests({ test, assert }) {
   });
 
   test("cli init accepts --config and applies provider context", async () => {
-    await withTempDir("ai-bootstrap-cli-config-", async (targetDir) => {
+    await withTempDir("ai-agent-bootstrap-cli-config-", async (targetDir) => {
       const configPath = path.join(targetDir, "bootstrap.config.json");
       await fs.writeFile(
         configPath,
@@ -251,66 +373,22 @@ module.exports = async function registerCliTests({ test, assert }) {
     });
   });
 
-  test("cli init accepts invalid --var forms without crashing", async () => {
-    await withTempDir("ai-bootstrap-cli-invalid-vars-", async (targetDir) => {
-      const result = await runCli(
-        [
-          "init",
-          "--provider",
-          "cline",
-          "--yes",
-          "--dir",
-          targetDir,
-          "--var",
-          "NO_EQUALS",
-          "--var",
-          "=empty",
-          "--var",
-          "valid_key=ok",
-        ],
-        { cwd: targetDir },
-      );
-
-      assert.strictEqual(result.code, 0);
-      assert.ok(result.stdout.includes("Done!"));
-    });
-  });
-
-  test("cli init accepts duplicate --var keys with last-write-wins semantics", async () => {
-    await withTempDir("ai-bootstrap-cli-duplicate-vars-", async (targetDir) => {
-      const result = await runCli(
-        [
-          "init",
-          "--provider",
-          "cline",
-          "--yes",
-          "--dir",
-          targetDir,
-          "--var",
-          "owner_name=first",
-          "--var",
-          "OWNER_NAME=second",
-        ],
-        { cwd: targetDir },
-      );
-
-      assert.strictEqual(result.code, 0);
-      assert.ok(result.stdout.includes("Done!"));
-    });
-  });
-
   test("cli formats provider-not-ready errors with category prefix", async () => {
     const script = `
       const path = require("path");
       const root = process.cwd();
-      const statusPath = path.join(root, "src", "status.js");
+      const statusPath = path.join(root, "src", "commands", "status.js");
       require.cache[require.resolve(statusPath)] = {
         id: statusPath,
         filename: statusPath,
         loaded: true,
         exports: {
           checkStatus: () => {
-            throw new Error("Cursor templates are not ready yet. Use one of: cline");
+            const error = new Error(
+              "Cursor templates are not ready yet. Use one of: cline",
+            );
+            error.code = "PROVIDER_NOT_READY";
+            throw error;
           },
         },
       };
@@ -328,14 +406,18 @@ module.exports = async function registerCliTests({ test, assert }) {
     const script = `
       const path = require("path");
       const root = process.cwd();
-      const initPath = path.join(root, "src", "init.js");
+      const initPath = path.join(root, "src", "commands", "init.js");
       require.cache[require.resolve(initPath)] = {
         id: initPath,
         filename: initPath,
         loaded: true,
         exports: {
           initProject: async () => {
-            throw new Error("Manifest validation failed:\\n- Provider \\"cline\\" is missing template source \\"cline/memory-bank/projectbrief.md\\".");
+            const error = new Error(
+              "Manifest validation failed:\\n- Provider \\"cline\\" is missing template source \\"cline/memory-bank/projectbrief.md\\".",
+            );
+            error.code = "MISSING_TEMPLATE_SOURCE";
+            throw error;
           },
         },
       };
@@ -353,7 +435,7 @@ module.exports = async function registerCliTests({ test, assert }) {
     const script = `
       const path = require("path");
       const root = process.cwd();
-      const initPath = path.join(root, "src", "init.js");
+      const initPath = path.join(root, "src", "commands", "init.js");
       require.cache[require.resolve(initPath)] = {
         id: initPath,
         filename: initPath,
@@ -377,22 +459,25 @@ module.exports = async function registerCliTests({ test, assert }) {
   });
 
   test("cli init fails for missing --config file", async () => {
-    await withTempDir("ai-bootstrap-cli-config-missing-", async (targetDir) => {
-      const missingPath = path.join(targetDir, "missing-config.json");
-      const result = await runCli(
-        ["init", "--yes", "--dir", targetDir, "--config", missingPath],
-        { cwd: targetDir },
-      );
+    await withTempDir(
+      "ai-agent-bootstrap-cli-config-missing-",
+      async (targetDir) => {
+        const missingPath = path.join(targetDir, "missing-config.json");
+        const result = await runCli(
+          ["init", "--yes", "--dir", targetDir, "--config", missingPath],
+          { cwd: targetDir },
+        );
 
-      assert.strictEqual(result.code, 1);
-      assert.ok(result.stderr.includes("config error:"));
-      assert.ok(result.stderr.includes("Config file not found"));
-    });
+        assert.strictEqual(result.code, 1);
+        assert.ok(result.stderr.includes("config error:"));
+        assert.ok(result.stderr.includes("Config file not found"));
+      },
+    );
   });
 
   test("cli init fails for invalid --config JSON", async () => {
     await withTempDir(
-      "ai-bootstrap-cli-config-invalid-json-",
+      "ai-agent-bootstrap-cli-config-invalid-json-",
       async (targetDir) => {
         const configPath = path.join(targetDir, "bootstrap.config.json");
         await fs.writeFile(configPath, "{ not-valid-json", "utf-8");
@@ -411,7 +496,7 @@ module.exports = async function registerCliTests({ test, assert }) {
 
   test("cli init fails for invalid --config context type", async () => {
     await withTempDir(
-      "ai-bootstrap-cli-config-invalid-shape-",
+      "ai-agent-bootstrap-cli-config-invalid-shape-",
       async (targetDir) => {
         const configPath = path.join(targetDir, "bootstrap.config.json");
         await fs.writeFile(
@@ -434,7 +519,7 @@ module.exports = async function registerCliTests({ test, assert }) {
 
   test("cli init fails for invalid --config templateVariables type", async () => {
     await withTempDir(
-      "ai-bootstrap-cli-config-invalid-vars-shape-",
+      "ai-agent-bootstrap-cli-config-invalid-vars-shape-",
       async (targetDir) => {
         const configPath = path.join(targetDir, "bootstrap.config.json");
         await fs.writeFile(

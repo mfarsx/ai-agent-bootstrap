@@ -80,6 +80,22 @@ module.exports = async function registerUtilsTests({ test, assert }) {
     assert.strictEqual(output, "Owner: Platform Team");
   });
 
+  test("fillTemplate leaves unknown tokens untouched", () => {
+    const output = fillTemplate("Known {{PROJECT_NAME}} Unknown {{UNDEFINED_KEY}}", {
+      projectName: "demo",
+    });
+
+    assert.strictEqual(output, "Known demo Unknown {{UNDEFINED_KEY}}");
+  });
+
+  test("fillTemplate renders every token in a single pass", () => {
+    const output = fillTemplate(
+      "{{PROJECT_NAME}} {{PROJECT_NAME}} {{PROJECT_NAME}}",
+      { projectName: "x" },
+    );
+    assert.strictEqual(output, "x x x");
+  });
+
   test("fillTemplate resolves placeholders in shipped templates", async () => {
     const templatesRoot = path.join(__dirname, "..", "templates");
     const filePaths = [
