@@ -1,10 +1,9 @@
 {
   "name": "ai-agent-bootstrap",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "CLI to scaffold AI-agent context, rules, and memory files for Cline, Cursor, OpenClaw, Windsurf, and Claude Code.",
   "main": "src/index.js",
   "bin": {
-    "ai-bootstrap": "./bin/cli.js",
     "ai-agent-bootstrap": "./bin/cli.js"
   },
   "files": [
@@ -12,6 +11,7 @@
     "src/",
     "templates/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
@@ -20,8 +20,11 @@
     "init": "node bin/cli.js init",
     "reset": "node bin/cli.js reset",
     "status": "node bin/cli.js status",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,md,json}\"",
+    "format:check": "prettier --check \"**/*.{js,md,json}\"",
     "pack:dry-run": "npm pack --dry-run",
-    "publish:check": "npm run test && npm run pack:dry-run",
+    "publish:check": "npm run lint && npm run test && npm run pack:dry-run",
     "prepublishOnly": "npm run publish:check"
   },
   "keywords": [
@@ -55,5 +58,10 @@
     "commander": "^11.1.0",
     "diff": "^5.2.2",
     "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "prettier": "^3.8.3"
   }
 }

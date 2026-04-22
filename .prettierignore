@@ -1,0 +1,5 @@
+node_modules
+templates
+docs/assets
+package-lock.json
+CHANGELOG.md
